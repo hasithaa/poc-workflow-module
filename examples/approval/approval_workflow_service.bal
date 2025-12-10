@@ -5,7 +5,7 @@ import hasitha/workflow;
 service "ApprovalWorkflow" on approvalListener {
 
     isolated remote function execute(workflow:Context ctx, string requestId, decimal amount, string requester) returns string|error {
-        io:println(string `Starting approval workflow for request: ${requestId}, amount: ${amount}, requester: ${requester}`);
+        io:println(string `[Workflow] Starting approval workflow for request: ${requestId}, amount: ${amount}, requester: ${requester}`);
 
         // Step 1: Validate document
         anydata _ = check ctx->callActivity("validateDocument", requestId);
@@ -16,13 +16,15 @@ service "ApprovalWorkflow" on approvalListener {
             86400 // 24 hours timeout
         );
 
+        io:println(string `[Workflow] Received signal: ${result.signalName} for request: ${requestId}`);
+
         string signalName = result.signalName;
         map<string> signalData = result.data;
 
         if signalName == "approved" {
             string? approverValue = signalData["approver"];
             string approver = approverValue is string ? approverValue : "unknown";
-            io:println(string `Document approved by: ${approver}`);
+            io:println(string `[Workflow] Document approved by: ${approver}`);
             
             anydata _ = check ctx->callActivity("publishDocument", requestId);
             anydata _ = check ctx->callActivity("notifySubmitter", requester, "Your document has been approved");
@@ -32,7 +34,7 @@ service "ApprovalWorkflow" on approvalListener {
         } else if signalName == "rejected" {
             string? reasonValue = signalData["reason"];
             string reason = reasonValue is string ? reasonValue : "No reason provided";
-            io:println(string `Document rejected: ${reason}`);
+            io:println(string `[Workflow] Document rejected: ${reason}`);
             
             anydata _ = check ctx->callActivity("notifySubmitter", requester, string `Document rejected: ${reason}`);
             
@@ -42,7 +44,7 @@ service "ApprovalWorkflow" on approvalListener {
             // needsRevision
             string? commentsValue = signalData["comments"];
             string comments = commentsValue is string ? commentsValue : "Revision required";
-            io:println(string `Document needs revision: ${comments}`);
+            io:println(string `[Workflow] Document needs revision: ${comments}`);
             
             anydata _ = check ctx->callActivity("notifySubmitter", requester, string `Revision needed: ${comments}`);
             

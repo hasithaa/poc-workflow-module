@@ -78,10 +78,11 @@ curl -X POST http://localhost:9090/workflows/approval \
     "amount": 5000,
     "requester": "user@example.com"
   }'
-
 # Response: {"status":"success", "workflowId":"ApprovalWorkflow-REQ-001", ...}
+```
 
 # Send approval signal
+```bash
 curl -X POST http://localhost:9090/workflows/approval/signal/ \
   -H "Content-Type: application/json" \
   -d '{
@@ -89,7 +90,9 @@ curl -X POST http://localhost:9090/workflows/approval/signal/ \
     "signalName": "approved",
     "comment": "approved by manager"
   }'
+```
 
+```bash
 # Check logs for workflow execution
 tail -30 /tmp/workflow-app.log | grep -E "(Starting|completed|ERROR)"
 ```

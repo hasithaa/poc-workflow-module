@@ -65,7 +65,7 @@ service /workflows on new http:Listener(9090) {
             "requestId": requestId
         };
 
-        io:println("Sending Signal ", correlationData);
+        io:println("[HTTP] Sending Signal ", correlationData);
         check workflowClient->signal(
             correlationData,
             signalName,
@@ -93,6 +93,7 @@ service /workflows on new http:Listener(9090) {
             "requestId": requestId
         };
 
+        io:println("[HTTP] Starting Approval Workflow ", correlationData);
         string workflowId = check workflowClient->startWorkflow(
             "ApprovalWorkflow",
             {

@@ -30,7 +30,7 @@ public isolated client class Context {
 
     # Initialize context (internal - called by runtime)
     isolated function init(handle nativeContext) {
-        log:printDebug("Context init called");
+        log:printDebug("[Context] Context init called");
         self.nativeContext = nativeContext;
     }
 
@@ -45,9 +45,9 @@ public isolated client class Context {
     ) returns anydata|error {
         final anydata|error result;
         lock {
-            log:printDebug("CallActivity called for activity: " + activityName);
+            log:printDebug("[Context] CallActivity called for activity: " + activityName);
             result = executeActivityNative(self.nativeContext, activityName, args.clone());
-            log:printDebug("CallActivity completed for activity: " + activityName);
+            log:printDebug("[Context] CallActivity completed for activity: " + activityName);
         }
         return result;
     }
@@ -63,9 +63,9 @@ public isolated client class Context {
     ) returns map<string>|error {
         final map<string>|error result;
         lock {
-            log:printDebug("AwaitSignal called for signal: " + signalName);
+            log:printDebug("[Context] AwaitSignal called for signal: " + signalName);
             result = awaitSignalNative(self.nativeContext, signalName, timeoutSeconds);
-            log:printDebug("AwaitSignal completed for signal: " + signalName);
+            log:printDebug("[Context] AwaitSignal completed for signal: " + signalName);
         }
         return result;
     }
@@ -81,9 +81,9 @@ public isolated client class Context {
     ) returns boolean|error {
         final boolean|error result;
         lock {
-            log:printDebug("AwaitCondition called");
+            log:printDebug("[Context] AwaitCondition called");
             result = awaitConditionNative(self.nativeContext, timeoutSeconds, condition);
-            log:printDebug("AwaitCondition completed");
+            log:printDebug("[Context] AwaitCondition completed");
         }
         return result;
     }
@@ -99,9 +99,9 @@ public isolated client class Context {
     ) returns SignalResult|error {
         final SignalResult|error result;
         lock {
-            log:printDebug("AwaitAnySignal called");
+            log:printDebug("[Context] AwaitAnySignal called");
             result = awaitAnySignalNative(self.nativeContext, signalNames.clone(), timeoutSeconds);
-            log:printDebug("AwaitAnySignal completed");
+            log:printDebug("[Context] AwaitAnySignal completed");
         }
         return result;
     }
@@ -112,9 +112,9 @@ public isolated client class Context {
     # + return - Error if sleep fails
     isolated remote function sleep(int seconds) returns error? {
         lock {
-            log:printDebug("Sleep called for " + seconds.toString() + " seconds");
+            log:printDebug("[Context] Sleep called for " + seconds.toString() + " seconds");
             check sleepNative(self.nativeContext, seconds);
-            log:printDebug("Sleep completed");
+            log:printDebug("[Context] Sleep completed");
         }
     }
 
@@ -124,9 +124,9 @@ public isolated client class Context {
     isolated remote function getCorrelationId() returns string {
         final string result;
         lock {
-            log:printDebug("GetCorrelationId called");
+            log:printDebug("[Context] GetCorrelationId called");
             result = getCorrelationIdNative(self.nativeContext);
-            log:printDebug("GetCorrelationId completed: " + result);
+            log:printDebug("[Context] GetCorrelationId completed: " + result);
         }
         return result;
     }
@@ -137,9 +137,9 @@ public isolated client class Context {
     isolated remote function isReplaying() returns boolean {
         final boolean result;
         lock {
-            log:printDebug("IsReplaying called");
+            log:printDebug("[Context] IsReplaying called");
             result = isReplayingNative(self.nativeContext);
-            log:printDebug("IsReplaying completed: " + result.toString());
+            log:printDebug("[Context] IsReplaying completed: " + result.toString());
         }
         return result;
     }

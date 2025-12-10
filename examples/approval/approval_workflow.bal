@@ -8,13 +8,13 @@ import ballerina/io;
 
 // Activity implementations for approval workflow
 isolated function validateDocument(string documentId) returns error? {
-    io:println(string `Validating document: ${documentId}`);
+    io:println(string `[Activity] Validating document: ${documentId}`);
 }
 
 isolated function publishDocument(string documentId) returns error? {
-    io:println(string `Publishing document: ${documentId}`);
+    io:println(string `[Activity] Publishing document: ${documentId}`);
 }
 
 isolated function notifySubmitter(string submitter, string message) returns error? {
-    io:println(string `Notifying ${submitter}: ${message}`);
+    io:println(string `[Activity] Notifying ${submitter}: ${message}`);
 }

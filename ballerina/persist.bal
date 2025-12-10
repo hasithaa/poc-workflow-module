@@ -28,9 +28,9 @@ public isolated class PersistenceProvider {
     # + config - Temporal configuration
     # + return - Error if initialization fails
     public isolated function init(TemporalConfig config) returns error? {
-        log:printDebug("PersistenceProvider.init() called");
+        log:printDebug("[PersistenceProvider] PersistenceProvider.init() called");
         self.temporalClient = check initTemporalClient(config);
-        log:printDebug("PersistenceProvider.init() completed");
+        log:printDebug("[PersistenceProvider] PersistenceProvider.init() completed");
     }
     
     # Get the underlying Temporal client handle
@@ -38,7 +38,7 @@ public isolated class PersistenceProvider {
     # + return - Temporal client handle
     isolated function getClientHandle() returns handle {
         lock {
-            log:printDebug("PersistenceProvider.getClientHandle() called");
+            log:printDebug("[PersistenceProvider] PersistenceProvider.getClientHandle() called");
             return self.temporalClient;
         }
     }
@@ -48,9 +48,9 @@ public isolated class PersistenceProvider {
     # + return - Error if close fails
     public isolated function close() returns error? {
         lock {
-            log:printDebug("PersistenceProvider.close() called");
+            log:printDebug("[PersistenceProvider] PersistenceProvider.close() called");
             error? result = closeTemporalClient(self.temporalClient);
-            log:printDebug("PersistenceProvider.close() completed");
+            log:printDebug("[PersistenceProvider] PersistenceProvider.close() completed");
             return result;
         }
     }

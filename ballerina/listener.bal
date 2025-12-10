@@ -32,11 +32,11 @@ public class Listener {
             PersistenceProvider provider,
             ListenerConfig config
     ) returns error? {
-        log:printDebug("Listener.init() called for task queue: " + config.taskQueue);
+        log:printDebug("[Listener] Listener.init() called for task queue: " + config.taskQueue);
         self.config = config.clone();
         handle temporalClient = provider.getClientHandle();
         self.nativeWorker = check initWorkflowWorker(temporalClient, config);
-        log:printDebug("Listener.init() completed for task queue: " + config.taskQueue);
+        log:printDebug("[Listener] Listener.init() completed for task queue: " + config.taskQueue);
     }
 
     # Attach workflow service to listener
@@ -46,9 +46,9 @@ public class Listener {
     # + return - Error if attachment fails
     public function attach(service object {} s, string[]|string? name = ()) returns error? {
         string serviceName = name is string ? name : (name is string[] ? name[0] : "");
-        log:printDebug("Listener.attach() called for service: " + serviceName);
+        log:printDebug("[Listener] Listener.attach() called for service: " + serviceName);
         check attachServiceNative(self.nativeWorker, s, serviceName);
-        log:printDebug("Listener.attach() completed for service: " + serviceName);
+        log:printDebug("[Listener] Listener.attach() completed for service: " + serviceName);
     }
 
     # Detach workflow service from listener
@@ -56,36 +56,36 @@ public class Listener {
     # + s - Workflow service object
     # + return - Error if detachment fails
     public function detach(service object {} s) returns error? {
-        log:printDebug("Listener.detach() called");
+        log:printDebug("[Listener] Listener.detach() called");
         check detachServiceNative(self.nativeWorker, s);
-        log:printDebug("Listener.detach() completed");
+        log:printDebug("[Listener] Listener.detach() completed");
     }
 
     # Start the workflow worker (blocking)
     #
     # + return - Error if start fails
     public function 'start() returns error? {
-        log:printDebug("Listener.start() called for task queue: " + self.config.taskQueue);
+        log:printDebug("[Listener] Listener.start() called for task queue: " + self.config.taskQueue);
         check startWorkerNative(self.nativeWorker);
-        log:printDebug("Listener.start() completed for task queue: " + self.config.taskQueue);
+        log:printDebug("[Listener] Listener.start() completed for task queue: " + self.config.taskQueue);
     }
 
     # Gracefully stop the workflow worker
     #
     # + return - Error if stop fails
     public function gracefulStop() returns error? {
-        log:printDebug("Listener.gracefulStop() called");
+        log:printDebug("[Listener] Listener.gracefulStop() called");
         check stopWorkerNative(self.nativeWorker);
-        log:printDebug("Listener.gracefulStop() completed");
+        log:printDebug("[Listener] Listener.gracefulStop() completed");
     }
 
     # Immediately stop the workflow worker
     #
     # + return - Error if stop fails
     public function immediateStop() returns error? {
-        log:printDebug("Listener.immediateStop() called");
+        log:printDebug("[Listener] Listener.immediateStop() called");
         check stopWorkerNative(self.nativeWorker);
-        log:printDebug("Listener.immediateStop() completed");
+        log:printDebug("[Listener] Listener.immediateStop() completed");
     }
 }
 
@@ -133,9 +133,9 @@ public isolated function registerActivity(
         string activityName,
         function activityFunction
 ) returns error? {
-    log:printDebug("RegisterActivity called for activity: " + activityName);
+    log:printDebug("[Activity] RegisterActivity called for activity: " + activityName);
     error? result = registerActivityNative(activityName, activityFunction);
-    log:printDebug("RegisterActivity completed for activity: " + activityName);
+    log:printDebug("[Activity] RegisterActivity completed for activity: " + activityName);
     return result;
 }
 
