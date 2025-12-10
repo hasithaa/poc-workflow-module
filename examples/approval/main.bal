@@ -5,7 +5,7 @@ import ballerina/io;
 // Register activities function - called at startup
 // Note: Activity implementations are defined in respective workflow files
 function registerActivities() returns error? {
-    io:println("[INIT] Registering activity implementations...");
+    io:println("Registering activity implementations...");
     
     // Approval workflow activities (defined in approval_workflow.bal)
     check workflow:registerActivity("validateDocument", validateDocument);
@@ -15,14 +15,14 @@ function registerActivities() returns error? {
     // Order workflow activities (defined in order_workflow.bal)  
     // TODO: Add order workflow activities when implemented
     
-    io:println("[INIT] All activities registered successfully");
+    io:println("All activities registered successfully");
 }
 
 // Initialize activities at module load time
 function init() {
     error? result = registerActivities();
     if result is error {
-        io:println(string `[ERROR] Failed to register activities: ${result.message()}`);
+        io:println(string `Failed to register activities: ${result.message()}`);
     }
 }
 

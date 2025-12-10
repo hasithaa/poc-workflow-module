@@ -50,15 +50,22 @@ public class WorkflowClientNative {
      * @return Client handle or error
      */
     public static Object initClient(Object temporalClient) {
+        System.out.println("[JClient] ========== initClient() ENTRY ==========");
         try {
             if (!(temporalClient instanceof WorkflowClient)) {
+                System.err.println("[JClient] Invalid Temporal client handle type: " + temporalClient.getClass().getName());
                 return ErrorCreator.createError(
                     StringUtils.fromString("Invalid Temporal client handle"));
             }
             
+            System.out.println("[JClient] Temporal client validated successfully");
+            System.out.println("[JClient] ========== initClient() EXIT [SUCCESS] ==========");
             // Return the temporal client as-is since we'll use it directly
             return temporalClient;
         } catch (Exception e) {
+            System.err.println("[JClient] ========== initClient() EXIT [ERROR] ==========");
+            System.err.println("[JClient] Error: " + e.getMessage());
+            e.printStackTrace();
             return ErrorCreator.createError(
                 StringUtils.fromString("Failed to initialize workflow client: " + e.getMessage()));
         }
@@ -76,15 +83,20 @@ public class WorkflowClientNative {
             Object clientHandle,
             BString workflowType,
             BMap<BString, Object> params) {
+        System.out.println("[JClient] ========== startWorkflow() ENTRY ==========");
+        System.out.println("[JClient] Workflow type: " + workflowType.getValue());
         try {
             if (!(clientHandle instanceof WorkflowClient)) {
+                System.err.println("[JClient] Invalid client handle type");
                 return ErrorCreator.createError(
                     StringUtils.fromString("Invalid client handle"));
             }
             
             WorkflowClient client = (WorkflowClient) clientHandle;
+            System.out.println("[JClient] WorkflowClient validated");
             
             // Extract parameters from BMap
+            System.out.println("[JClient] Extracting parameters from BMap...");
             @SuppressWarnings("unchecked")
             BMap<BString, BString> correlationData = 
                 (BMap<BString, BString>) params.get(StringUtils.fromString("correlationData"));
@@ -95,58 +107,80 @@ public class WorkflowClientNative {
             Object timeoutObj = params.get(StringUtils.fromString("executionTimeout"));
             long executionTimeout = timeoutObj instanceof Long ? (Long) timeoutObj : 0L;
             
-            // Extract task queue (default to "default" if not specified)
+            System.out.println("[JClient] Execution timeout: " + executionTimeout + " seconds");
+            System.out.println("[JClient] Workflow args count: " + workflowArgs.size());
+            
+            // Extract task queue (default to \"default\" if not specified)
             Object taskQueueObj = params.get(StringUtils.fromString("taskQueue"));
             String taskQueue = "default";
             if (taskQueueObj instanceof BString) {
                 taskQueue = ((BString) taskQueueObj).getValue();
             }
             
-            System.out.println("[DEBUG] Starting workflow '" + workflowType.getValue() + "' on task queue: " + taskQueue);
+            System.out.println("[JClient] Starting workflow '" + workflowType.getValue() + "' on task queue: " + taskQueue);
             
             // Convert correlation data to Java Map
+            System.out.println("[JClient] Converting correlation data to Java Map...");
             Map<String, String> correlationMap = new HashMap<>();
             if (correlationData != null) {
                 for (BString key : correlationData.getKeys()) {
-                    correlationMap.put(key.getValue(), correlationData.get(key).getValue());
+                    String keyStr = key.getValue();
+                    String valueStr = correlationData.get(key).getValue();
+                    correlationMap.put(keyStr, valueStr);
+                    System.out.println("[JClient] Correlation - " + keyStr + ": " + valueStr);
                 }
             }
             
             // Generate workflow ID from correlation data
+            System.out.println("[JClient] Generating workflow ID from correlation data...");
             String workflowId = CorrelationUtils.generateWorkflowId(
                 workflowType.getValue(), 
                 correlationMap
             );
+            System.out.println("[JClient] Generated workflow ID: " + workflowId);
             
             // Build workflow options
+            System.out.println("[JClient] Building workflow options...");
             WorkflowOptions.Builder optionsBuilder = WorkflowOptions.newBuilder()
                 .setWorkflowId(workflowId)
                 .setTaskQueue(taskQueue);
             
             if (executionTimeout > 0) {
+                System.out.println("[JClient] Setting workflow execution timeout: " + executionTimeout + " seconds");
                 optionsBuilder.setWorkflowExecutionTimeout(Duration.ofSeconds(executionTimeout));
             }
             
             WorkflowOptions options = optionsBuilder.build();
+            System.out.println("[JClient] Workflow options built successfully");
             
             // Create untyped workflow stub
+            System.out.println("[JClient] Creating untyped workflow stub...");
             WorkflowStub workflow = client.newUntypedWorkflowStub(
                 workflowType.getValue(), 
                 options
             );
+            System.out.println("[JClient] Workflow stub created");
             
             // Convert workflow args to Object array with proper type conversion
+            System.out.println("[JClient] Converting " + workflowArgs.size() + " workflow arguments...");
             Object[] args = new Object[(int) workflowArgs.size()];
             for (int i = 0; i < workflowArgs.size(); i++) {
-                args[i] = convertBallerinaToJava(workflowArgs.get(i));
+                Object arg = workflowArgs.get(i);
+                args[i] = convertBallerinaToJava(arg);
+                System.out.println("[JClient] Arg[" + i + "]: " + args[i] + " (type: " + args[i].getClass().getSimpleName() + ")");
             }
             
             // Start workflow asynchronously
+            System.out.println("[JClient] Starting workflow execution...");
             workflow.start(args);
+            System.out.println("[JClient] Workflow started successfully with ID: " + workflowId);
+            System.out.println("[JClient] ========== startWorkflow() EXIT [SUCCESS] ==========");
             
             return StringUtils.fromString(workflowId);
             
         } catch (Exception e) {
+            System.err.println("[JClient] ========== startWorkflow() EXIT [ERROR] ==========");
+            System.err.println("[JClient] Error starting workflow: " + e.getClass().getName() + ": " + e.getMessage());
             e.printStackTrace(); // Log full stack trace for debugging
             return ErrorCreator.createError(
                 StringUtils.fromString("Failed to start workflow: " + e.getClass().getName() + ": " + e.getMessage()));
@@ -167,47 +201,69 @@ public class WorkflowClientNative {
             BMap<BString, BString> correlationData,
             BString signalName,
             BMap<BString, BString> signalData) {
+        System.out.println("[JClient] ========== sendSignal() ENTRY ==========");
+        System.out.println("[JClient] Signal name: " + signalName.getValue());
         try {
             if (!(clientHandle instanceof WorkflowClient)) {
+                System.err.println("[JClient] Invalid client handle");
                 return ErrorCreator.createError(
                     StringUtils.fromString("Invalid client handle"));
             }
             
             WorkflowClient client = (WorkflowClient) clientHandle;
+            System.out.println("[JClient] WorkflowClient validated");
             
             // Convert correlation data to Java Map
+            System.out.println("[JClient] Converting correlation data...");
             Map<String, String> correlationMap = new HashMap<>();
             if (correlationData != null) {
                 for (BString key : correlationData.getKeys()) {
-                    correlationMap.put(key.getValue(), correlationData.get(key).getValue());
+                    String keyStr = key.getValue();
+                    String valueStr = correlationData.get(key).getValue();
+                    correlationMap.put(keyStr, valueStr);
+                    System.out.println("[JClient] Correlation - " + keyStr + ": " + valueStr);
                 }
             }
             
             // Resolve workflow ID from correlation data
+            System.out.println("[JClient] Resolving workflow ID from correlation data...");
             String workflowId = CorrelationUtils.resolveWorkflowId(correlationMap);
+            System.out.println("[JClient] Resolved workflow ID: " + workflowId);
             
             if (workflowId == null) {
+                System.err.println("[JClient] Could not resolve workflow ID from correlation data");
                 return ErrorCreator.createError(
                     StringUtils.fromString("Could not resolve workflow ID from correlation data"));
             }
             
             // Get workflow stub
+            System.out.println("[JClient] Creating workflow stub for ID: " + workflowId);
             WorkflowStub workflow = client.newUntypedWorkflowStub(workflowId);
             
             // Convert signal data to Java Map
+            System.out.println("[JClient] Converting signal data...");
             Map<String, String> signalMap = new HashMap<>();
             if (signalData != null) {
                 for (BString key : signalData.getKeys()) {
-                    signalMap.put(key.getValue(), signalData.get(key).getValue());
+                    String keyStr = key.getValue();
+                    String valueStr = signalData.get(key).getValue();
+                    signalMap.put(keyStr, valueStr);
+                    System.out.println("[JClient] Signal data - " + keyStr + ": " + valueStr);
                 }
             }
             
             // Send signal
+            System.out.println("[JClient] Sending signal '" + signalName.getValue() + "' to workflow...");
             workflow.signal(signalName.getValue(), signalMap);
+            System.out.println("[JClient] Signal sent successfully");
+            System.out.println("[JClient] ========== sendSignal() EXIT [SUCCESS] ==========");
             
             return null;
             
         } catch (Exception e) {
+            System.err.println("[JClient] ========== sendSignal() EXIT [ERROR] ==========");
+            System.err.println("[JClient] Error sending signal: " + e.getMessage());
+            e.printStackTrace();
             return ErrorCreator.createError(
                 StringUtils.fromString("Failed to send signal: " + e.getMessage()));
         }
@@ -225,41 +281,59 @@ public class WorkflowClientNative {
             Object clientHandle,
             BMap<BString, BString> correlationData,
             BString queryName) {
+        System.out.println("[JClient] ========== queryWorkflow() ENTRY ==========");
+        System.out.println("[JClient] Query name: " + queryName.getValue());
         try {
             if (!(clientHandle instanceof WorkflowClient)) {
+                System.err.println("[JClient] Invalid client handle");
                 return ErrorCreator.createError(
                     StringUtils.fromString("Invalid client handle"));
             }
             
             WorkflowClient client = (WorkflowClient) clientHandle;
+            System.out.println("[JClient] WorkflowClient validated");
             
             // Convert correlation data to Java Map
+            System.out.println("[JClient] Converting correlation data...");
             Map<String, String> correlationMap = new HashMap<>();
             if (correlationData != null) {
                 for (BString key : correlationData.getKeys()) {
-                    correlationMap.put(key.getValue(), correlationData.get(key).getValue());
+                    String keyStr = key.getValue();
+                    String valueStr = correlationData.get(key).getValue();
+                    correlationMap.put(keyStr, valueStr);
+                    System.out.println("[JClient] Correlation - " + keyStr + ": " + valueStr);
                 }
             }
             
             // Resolve workflow ID from correlation data
+            System.out.println("[JClient] Resolving workflow ID from correlation data...");
             String workflowId = CorrelationUtils.resolveWorkflowId(correlationMap);
+            System.out.println("[JClient] Resolved workflow ID: " + workflowId);
             
             if (workflowId == null) {
+                System.err.println("[JClient] Could not resolve workflow ID from correlation data");
                 return ErrorCreator.createError(
                     StringUtils.fromString("Could not resolve workflow ID from correlation data"));
             }
             
             // Get workflow stub
+            System.out.println("[JClient] Creating workflow stub for ID: " + workflowId);
             WorkflowStub workflow = client.newUntypedWorkflowStub(workflowId);
             
             // Execute query
+            System.out.println("[JClient] Executing query '" + queryName.getValue() + "'...");
             Object result = workflow.query(queryName.getValue(), Object.class);
+            System.out.println("[JClient] Query result: " + result);
+            System.out.println("[JClient] ========== queryWorkflow() EXIT [SUCCESS] ==========");
             
             // Convert result to appropriate Ballerina type
             // For now, return as-is; may need type conversion based on result type
             return result;
             
         } catch (Exception e) {
+            System.err.println("[JClient] ========== queryWorkflow() EXIT [ERROR] ==========");
+            System.err.println("[JClient] Error querying workflow: " + e.getMessage());
+            e.printStackTrace();
             return ErrorCreator.createError(
                 StringUtils.fromString("Failed to query workflow: " + e.getMessage()));
         }

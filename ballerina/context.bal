@@ -15,7 +15,7 @@
 // under the License.
 
 import ballerina/jballerina.java;
-import ballerina/log;
+import ballerina/io;
 
 # Module initialization - captures runtime environment
 function init() = @java:Method {
@@ -30,7 +30,7 @@ public isolated client class Context {
 
     # Initialize context (internal - called by runtime)
     isolated function init(handle nativeContext) {
-        log:printDebug("[Context] Context init called");
+        io:println("[BContext] Context init called");
         self.nativeContext = nativeContext;
     }
 
@@ -45,9 +45,9 @@ public isolated client class Context {
     ) returns anydata|error {
         final anydata|error result;
         lock {
-            log:printDebug("[Context] CallActivity called for activity: " + activityName);
+            io:println("[BContext] CallActivity called for activity: " + activityName);
             result = executeActivityNative(self.nativeContext, activityName, args.clone());
-            log:printDebug("[Context] CallActivity completed for activity: " + activityName);
+            io:println("[BContext] CallActivity completed for activity: " + activityName);
         }
         return result;
     }
@@ -63,9 +63,9 @@ public isolated client class Context {
     ) returns map<string>|error {
         final map<string>|error result;
         lock {
-            log:printDebug("[Context] AwaitSignal called for signal: " + signalName);
+            io:println("[BContext] AwaitSignal called for signal: " + signalName);
             result = awaitSignalNative(self.nativeContext, signalName, timeoutSeconds);
-            log:printDebug("[Context] AwaitSignal completed for signal: " + signalName);
+            io:println("[BContext] AwaitSignal completed for signal: " + signalName);
         }
         return result;
     }
@@ -81,9 +81,9 @@ public isolated client class Context {
     ) returns boolean|error {
         final boolean|error result;
         lock {
-            log:printDebug("[Context] AwaitCondition called");
+            io:println("[BContext] AwaitCondition called");
             result = awaitConditionNative(self.nativeContext, timeoutSeconds, condition);
-            log:printDebug("[Context] AwaitCondition completed");
+            io:println("[BContext] AwaitCondition completed");
         }
         return result;
     }
@@ -99,9 +99,9 @@ public isolated client class Context {
     ) returns SignalResult|error {
         final SignalResult|error result;
         lock {
-            log:printDebug("[Context] AwaitAnySignal called");
+            io:println("[BContext] AwaitAnySignal called");
             result = awaitAnySignalNative(self.nativeContext, signalNames.clone(), timeoutSeconds);
-            log:printDebug("[Context] AwaitAnySignal completed");
+            io:println("[BContext] AwaitAnySignal completed");
         }
         return result;
     }
@@ -112,9 +112,9 @@ public isolated client class Context {
     # + return - Error if sleep fails
     isolated remote function sleep(int seconds) returns error? {
         lock {
-            log:printDebug("[Context] Sleep called for " + seconds.toString() + " seconds");
+            io:println("[BContext] Sleep called for " + seconds.toString() + " seconds");
             check sleepNative(self.nativeContext, seconds);
-            log:printDebug("[Context] Sleep completed");
+            io:println("[BContext] Sleep completed");
         }
     }
 
@@ -124,9 +124,9 @@ public isolated client class Context {
     isolated remote function getCorrelationId() returns string {
         final string result;
         lock {
-            log:printDebug("[Context] GetCorrelationId called");
+            io:println("[BContext] GetCorrelationId called");
             result = getCorrelationIdNative(self.nativeContext);
-            log:printDebug("[Context] GetCorrelationId completed: " + result);
+            io:println("[BContext] GetCorrelationId completed: " + result);
         }
         return result;
     }
@@ -137,9 +137,9 @@ public isolated client class Context {
     isolated remote function isReplaying() returns boolean {
         final boolean result;
         lock {
-            log:printDebug("[Context] IsReplaying called");
+            io:println("[BContext] IsReplaying called");
             result = isReplayingNative(self.nativeContext);
-            log:printDebug("[Context] IsReplaying completed: " + result.toString());
+            io:println("[BContext] IsReplaying completed: " + result.toString());
         }
         return result;
     }

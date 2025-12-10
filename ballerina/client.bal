@@ -15,7 +15,7 @@
 // under the License.
 
 import ballerina/jballerina.java;
-import ballerina/log;
+import ballerina/io;
 
 # Workflow client for starting workflows and sending signals
 public isolated client class Client {
@@ -27,10 +27,10 @@ public isolated client class Client {
     # + provider - Persistence provider
     # + return - Error if initialization fails
     public isolated function init(PersistenceProvider provider) returns error? {
-        log:printDebug("[Client] Client.init() called");
+        io:println("[BClient] Client.init() called");
         handle temporalClient = provider.getClientHandle();
         self.nativeClient = check initWorkflowClient(temporalClient);
-        log:printDebug("[Client] Client.init() completed");
+        io:println("[BClient] Client.init() completed");
     }
 
     # Start a workflow with correlation data
@@ -44,9 +44,9 @@ public isolated client class Client {
     ) returns string|error {
         final string|error result;
         lock {
-            log:printDebug("[Client] StartWorkflow called for workflow type: " + workflowType);
+            io:println("[BClient] StartWorkflow called for workflow type: " + workflowType);
             result = startWorkflowNative(self.nativeClient, workflowType, params.clone());
-            log:printDebug("[Client] StartWorkflow completed for workflow type: " + workflowType);
+            io:println("[BClient] StartWorkflow completed for workflow type: " + workflowType);
         }
         return result;
     }
@@ -63,9 +63,9 @@ public isolated client class Client {
             map<string> signalData = {}
     ) returns error? {
         lock {
-            log:printDebug("[Client] Signal called for signal: " + signalName);
+            io:println("[BClient] Signal called for signal: " + signalName);
             check sendSignalNative(self.nativeClient, correlationData.clone(), signalName, signalData.clone());
-            log:printDebug("[Client] Signal completed for signal: " + signalName);
+            io:println("[BClient] Signal completed for signal: " + signalName);
         }
     }
 
@@ -80,9 +80,9 @@ public isolated client class Client {
     ) returns anydata|error {
         final anydata|error result;
         lock {
-            log:printDebug("[Client] Query called for query: " + queryName);
+            io:println("[BClient] Query called for query: " + queryName);
             result = queryWorkflowNative(self.nativeClient, correlationData.clone(), queryName);
-            log:printDebug("[Client] Query completed for query: " + queryName);
+            io:println("[BClient] Query completed for query: " + queryName);
         }
         return result;
     }
