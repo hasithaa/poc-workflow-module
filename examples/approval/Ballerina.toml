@@ -1,0 +1,12 @@
+[package]
+org = "examples"
+name = "approval"
+version = "0.1.0"
+distribution = "2201.10.0"
+
+[[dependency]]
+org = "hasitha"
+name = "workflow"
+version = "0.1.0"
+repository="local"
+
