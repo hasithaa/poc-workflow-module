@@ -19,7 +19,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         
         <!-- Ballerina -->
-        <ballerina.lang.version>2201.13.0</ballerina.lang.version>
+        <ballerina.lang.version>2201.13.1</ballerina.lang.version>
         
         <!-- Temporal SDK -->
         <temporal.version>1.24.1</temporal.version>
@@ -40,9 +40,8 @@
         <!-- Ballerina Runtime API - provided by Ballerina at runtime -->
         <dependency>
             <groupId>org.ballerinalang</groupId>
-            <artifactId>ballerina-rt</artifactId>
+            <artifactId>ballerina-runtime</artifactId>
             <version>${ballerina.lang.version}</version>
-            <scope>provided</scope>
         </dependency>
 
         <!-- Temporal SDK -->
@@ -170,7 +169,7 @@
                 </configuration>
             </plugin>
 
-            <plugin>
+            <!-- <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0</version>
@@ -179,7 +178,7 @@
                         <suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile>
                     </suiteXmlFiles>
                 </configuration>
-            </plugin>
+            </plugin> -->
 
             <!-- Copy POC classes for reuse -->
             <plugin>
@@ -230,9 +229,9 @@
         </repository>
         
         <repository>
-            <id>github-ballerina</id>
+            <id>github</id>
             <name>GitHub Ballerina Packages</name>
-            <url>https://maven.pkg.github.com/ballerina-platform/ballerina-lang</url>
+            <url>https://maven.pkg.github.com/ballerina-platform/ballerina-lang/</url>
         </repository>
     </repositories>
 </project>

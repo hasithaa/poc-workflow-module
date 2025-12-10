@@ -10,7 +10,7 @@ observabilityIncluded = true
 
 # Native implementation JAR
 [[platform.java21.dependency]]
-path = "../java/target/workflow-native-0.1.0-SNAPSHOT.jar"
+path = "../native/target/workflow-native-0.1.0-SNAPSHOT.jar"
 
 # Temporal SDK dependencies (auto-downloaded via Maven)
 [[platform.java21.dependency]]
