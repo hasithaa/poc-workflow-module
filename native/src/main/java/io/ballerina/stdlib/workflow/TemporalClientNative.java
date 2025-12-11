@@ -90,7 +90,6 @@ public class TemporalClientNative {
         } catch (Exception e) {
             System.err.println("[JTemporal] ========== initClient() EXIT [ERROR] ==========");
             System.err.println("[JTemporal] Error initializing Temporal client: " + e.getMessage());
-            e.printStackTrace();
             return ErrorCreator.createError(
                     StringUtils.fromString(
                             "Failed to initialize Temporal client: " + e.getMessage()));
@@ -117,7 +116,6 @@ public class TemporalClientNative {
         } catch (Exception e) {
             System.err.println("[JTemporal] ========== closeClient() EXIT [ERROR] ==========");
             System.err.println("[JTemporal] Error closing Temporal client: " + e.getMessage());
-            e.printStackTrace();
             return ErrorCreator.createError(
                     StringUtils.fromString(
                             "Failed to close Temporal client: " + e.getMessage()));

@@ -10,7 +10,7 @@ POST http://localhost:9090/workflows/approval/signal
 Content-Type: */*
 
 {
-    "requestId": "REQ-001",
+    "requestId": "REQ-002",
     "signalName": "approved",
     "comment": "approved by manager"
   }
@@ -19,19 +19,15 @@ HTTP/1.1 500  - Internal Server Error
 content-type: application/json
 connection: close
 server: ballerina
-date: Wed, 10 Dec 2025 15:10:40 +0530
+date: Wed, 10 Dec 2025 15:15:40 +0530
 content-encoding: gzip
 content-length: 191
-/*
-#### POST /approval
-
-*/
 ###
 POST http://localhost:9090/workflows/approval
 Content-Type: */*
 
 {
-    "requestId": "REQ-001",
+    "requestId": "REQ-002",
     "amount": 5000,
     "requester": "user@example.com"
   }
@@ -40,12 +36,8 @@ HTTP/1.1 201  - Created
 content-type: application/json
 connection: close
 server: ballerina
-date: Wed, 10 Dec 2025 15:10:09 +0530
+date: Thu, 11 Dec 2025 08:28:26 +0530
 content-encoding: gzip
 content-length: 112
-/*
-#### GET /health
-
-*/
 ###
 GET http://localhost:9090/workflows/health

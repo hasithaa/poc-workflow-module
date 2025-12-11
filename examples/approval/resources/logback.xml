@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Console appender for stdout -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File appender for detailed logs -->
+    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/workflow.log</file>
+        <append>true</append>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Temporal SDK logging -->
+    <logger name="io.temporal" level="INFO"/>
+    <logger name="io.temporal.internal.worker" level="DEBUG"/>
+    <logger name="io.temporal.internal.replay" level="INFO"/>
+    <logger name="io.temporal.workflow" level="DEBUG"/>
+    
+    <!-- gRPC logging (usually very verbose, keep at WARN) -->
+    <logger name="io.grpc" level="WARN"/>
+    <logger name="io.grpc.netty" level="WARN"/>
+    
+    <!-- Netty logging -->
+    <logger name="io.netty" level="WARN"/>
+    
+    <!-- Custom workflow adapter logging -->
+    <logger name="io.ballerina.stdlib.workflow" level="DEBUG"/>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

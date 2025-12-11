@@ -22,7 +22,7 @@
         <ballerina.lang.version>2201.13.1</ballerina.lang.version>
         
         <!-- Temporal SDK -->
-        <temporal.version>1.24.1</temporal.version>
+        <temporal.version>1.32.1</temporal.version>
         
         <!-- Logging -->
         <slf4j.version>1.7.36</slf4j.version>
@@ -51,47 +51,47 @@
             <version>${temporal.version}</version>
         </dependency>
 
-        <!-- gRPC dependencies - force consistent version 1.59.0 -->
+        <!-- gRPC dependencies - force consistent version 1.70.0 -->
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-api</artifactId>
-            <version>1.59.0</version>
+            <version>1.70.0</version>
         </dependency>
 
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-context</artifactId>
-            <version>1.59.0</version>
+            <version>1.70.0</version>
         </dependency>
 
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-core</artifactId>
-            <version>1.59.0</version>
+            <version>1.70.0</version>
         </dependency>
 
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
-            <version>1.59.0</version>
+            <version>1.70.0</version>
         </dependency>
 
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-protobuf</artifactId>
-            <version>1.59.0</version>
+            <version>1.70.0</version>
         </dependency>
 
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
-            <version>1.59.0</version>
+            <version>1.70.0</version>
         </dependency>
 
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-services</artifactId>
-            <version>1.59.0</version>
+            <version>1.70.0</version>
         </dependency>
 
         <!-- Logging -->

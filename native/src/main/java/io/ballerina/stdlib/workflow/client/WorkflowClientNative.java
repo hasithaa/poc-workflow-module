@@ -65,7 +65,6 @@ public class WorkflowClientNative {
         } catch (Exception e) {
             System.err.println("[JClient] ========== initClient() EXIT [ERROR] ==========");
             System.err.println("[JClient] Error: " + e.getMessage());
-            e.printStackTrace();
             return ErrorCreator.createError(
                 StringUtils.fromString("Failed to initialize workflow client: " + e.getMessage()));
         }
@@ -181,7 +180,6 @@ public class WorkflowClientNative {
         } catch (Exception e) {
             System.err.println("[JClient] ========== startWorkflow() EXIT [ERROR] ==========");
             System.err.println("[JClient] Error starting workflow: " + e.getClass().getName() + ": " + e.getMessage());
-            e.printStackTrace(); // Log full stack trace for debugging
             return ErrorCreator.createError(
                 StringUtils.fromString("Failed to start workflow: " + e.getClass().getName() + ": " + e.getMessage()));
         }
@@ -263,7 +261,6 @@ public class WorkflowClientNative {
         } catch (Exception e) {
             System.err.println("[JClient] ========== sendSignal() EXIT [ERROR] ==========");
             System.err.println("[JClient] Error sending signal: " + e.getMessage());
-            e.printStackTrace();
             return ErrorCreator.createError(
                 StringUtils.fromString("Failed to send signal: " + e.getMessage()));
         }
@@ -333,7 +330,6 @@ public class WorkflowClientNative {
         } catch (Exception e) {
             System.err.println("[JClient] ========== queryWorkflow() EXIT [ERROR] ==========");
             System.err.println("[JClient] Error querying workflow: " + e.getMessage());
-            e.printStackTrace();
             return ErrorCreator.createError(
                 StringUtils.fromString("Failed to query workflow: " + e.getMessage()));
         }

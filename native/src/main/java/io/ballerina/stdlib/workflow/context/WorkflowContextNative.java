@@ -60,7 +60,7 @@ public class WorkflowContextNative {
             ActivityOptions activityOptions = ActivityOptions.newBuilder()
                 .setStartToCloseTimeout(Duration.ofMinutes(2))
                 .setRetryOptions(io.temporal.common.RetryOptions.newBuilder()
-                    .setMaximumAttempts(3)
+                    .setMaximumAttempts(1)
                     .build())
                 .build();
             
@@ -126,6 +126,7 @@ public class WorkflowContextNative {
             }
             
             // Execute activity through Temporal
+            // NOTE: Don't catch Temporal exceptions - let them propagate to fail the workflow
             System.out.println("[JContext] Executing activity '" + activityName.getValue() + "' through Temporal...");
             Object result = context.activityStub.execute(
                 activityName.getValue(),
@@ -145,6 +146,16 @@ public class WorkflowContextNative {
                 // Convert Java Map to Ballerina Map
                 @SuppressWarnings("unchecked")
                 Map<String, Object> javaMap = (Map<String, Object>) result;
+                
+                // Check if this is an error map (activity returned BError)
+                if (javaMap.containsKey("__error__") && Boolean.TRUE.equals(javaMap.get("__error__"))) {
+                    System.out.println("[JContext] Activity returned error value, converting to BError");
+                    String errorMessage = (String) javaMap.get("message");
+                    // Create Ballerina error from the error map
+                    return ErrorCreator.createError(StringUtils.fromString(errorMessage));
+                }
+                
+                // Regular map conversion
                 BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue();
                 for (Map.Entry<String, Object> entry : javaMap.entrySet()) {
                     Object value = entry.getValue();
@@ -159,12 +170,21 @@ public class WorkflowContextNative {
             System.out.println("[JContext] ========== executeActivity() EXIT [SUCCESS] ==========");
             return result;
             
-        } catch (Exception e) {
-            System.err.println("[JContext] ========== executeActivity() EXIT [ERROR] ==========");
-            System.err.println("[JContext] Activity execution failed: " + e.getMessage());
-            e.printStackTrace();
+        } catch (io.temporal.failure.ActivityFailure e) {
+            // Activity failed - extract error message and return as Ballerina error
+            // The Ballerina 'check' operator will fail the workflow
+            System.err.println("[JContext] ========== executeActivity() EXIT [ACTIVITY FAILURE] ==========");
+            String errorMessage = extractActivityErrorMessage(e);
+            System.err.println("[JContext] Activity '" + activityName.getValue() + "' failed: " + errorMessage);
             return ErrorCreator.createError(
-                StringUtils.fromString("Activity execution failed: " + e.getMessage()));
+                StringUtils.fromString(errorMessage));
+                
+        } catch (Exception e) {
+            // Other errors - wrap as Ballerina error for non-Temporal exceptions
+            System.err.println("[JContext] ========== executeActivity() EXIT [ERROR] ==========");
+            System.err.println("[JContext] Unexpected error during activity execution: " + e.getMessage());
+            return ErrorCreator.createError(
+                StringUtils.fromString("Activity execution error: " + e.getMessage()));
         }
     }
 
@@ -254,7 +274,6 @@ public class WorkflowContextNative {
         } catch (Exception e) {
             System.err.println("[JContext] ========== awaitCondition() EXIT [ERROR] ==========");
             System.err.println("[JContext] Await condition failed: " + e.getMessage());
-            e.printStackTrace();
             return ErrorCreator.createError(
                 StringUtils.fromString("Await condition failed: " + e.getMessage()));
         }
@@ -368,7 +387,6 @@ public class WorkflowContextNative {
         } catch (Exception e) {
             System.err.println("[JContext] ========== sleep() EXIT [ERROR] ==========");
             System.err.println("[JContext] Sleep failed: " + e.getMessage());
-            e.printStackTrace();
             return ErrorCreator.createError(
                 StringUtils.fromString("Sleep failed: " + e.getMessage()));
         }
@@ -402,7 +420,6 @@ public class WorkflowContextNative {
         } catch (Exception e) {
             System.err.println("[JContext] ========== getCorrelationId() EXIT [ERROR] ==========");
             System.err.println("[JContext] Error getting correlation ID: " + e.getMessage());
-            e.printStackTrace();
             return StringUtils.fromString("unknown");
         }
     }
@@ -423,7 +440,6 @@ public class WorkflowContextNative {
         } catch (Exception e) {
             System.err.println("[JContext] ========== isReplaying() EXIT [ERROR] ==========");
             System.err.println("[JContext] Error checking replay status: " + e.getMessage());
-            e.printStackTrace();
             return false;
         }
     }
@@ -487,5 +503,29 @@ public class WorkflowContextNative {
         SignalAwaitWrapper.recordSignal(signalName.getValue(), javaMap);
         System.out.println("[JContext] ========== recordSignal() EXIT [SUCCESS] ==========");
         return null;
+    }
+    
+    /**
+     * Extract a clean error message from Temporal ActivityFailure exception.
+     * Looks for the root cause which is typically the Ballerina error message.
+     * 
+     * @param e ActivityFailure exception
+     * @return Clean error message without Java stack traces
+     */
+    private static String extractActivityErrorMessage(io.temporal.failure.ActivityFailure e) {
+        // ActivityFailure wraps ApplicationFailure which contains the actual error
+        Throwable cause = e.getCause();
+        
+        if (cause instanceof io.temporal.failure.ApplicationFailure) {
+            io.temporal.failure.ApplicationFailure appFailure = 
+                (io.temporal.failure.ApplicationFailure) cause;
+            
+            // Get the original message - this is the clean Ballerina error
+            String message = appFailure.getOriginalMessage();
+            return message != null ? message : "Activity failed";
+        }
+        
+        // Fallback - shouldn't reach here with proper error handling
+        return "Activity execution failed";
     }
 }
