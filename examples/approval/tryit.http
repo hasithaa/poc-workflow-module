@@ -1,3 +1,6 @@
+
+---
+*/
 /*
 ### Try Service: 'workflows' (http://localhost:9090/workflows)
 
@@ -6,6 +9,7 @@
 #### POST /approval/signal
 
 */
+###
 POST http://localhost:9090/workflows/approval/signal
 Content-Type: */*
 
@@ -27,8 +31,8 @@ POST http://localhost:9090/workflows/approval
 Content-Type: */*
 
 {
-    "requestId": "REQ-002",
-    "amount": 5000,
+    "requestId": "REQ-DIRECT-001",
+    "amount": 500,
     "requester": "user@example.com"
   }
 
@@ -36,8 +40,8 @@ HTTP/1.1 201  - Created
 content-type: application/json
 connection: close
 server: ballerina
-date: Thu, 11 Dec 2025 08:28:26 +0530
+date: Thu, 11 Dec 2025 16:07:51 +0530
 content-encoding: gzip
-content-length: 112
+content-length: 119
 ###
 GET http://localhost:9090/workflows/health

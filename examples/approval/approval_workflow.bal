@@ -8,14 +8,15 @@ import ballerina/http;
 // - Handling multi-path workflows
 
 // Activity implementations for approval workflow
-isolated function validateDocument(string documentId) returns error? {
+isolated function validateDocument(string documentId) returns error|string {
     log:printInfo(string `[Activity] validateDocument START - documentId: ${documentId}`);
 
     http:Client cl = check new ("http://localhost:9090/workflows");
-    string j = check cl->get("/health2");
+    string j = check cl->get("/health");
     log:printDebug(string `[Activity] Validation service response: ${j}`);
     
     log:printInfo(string `[Activity] validateDocument END - documentId: ${documentId}`);
+    return j;
 }
 
 isolated function publishDocument(string documentId) returns error? {

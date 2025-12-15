@@ -20,6 +20,7 @@ package io.ballerina.stdlib.workflow.worker;
 
 import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.Runtime;
+import io.ballerina.runtime.api.concurrent.StrandMetadata;
 import io.ballerina.runtime.api.creators.ErrorCreator;
 import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.utils.StringUtils;
@@ -28,6 +29,7 @@ import io.ballerina.runtime.api.values.BFunctionPointer;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
+import io.ballerina.runtime.internal.values.FPValue;
 import io.temporal.activity.DynamicActivity;
 import io.temporal.client.WorkflowClient;
 import io.temporal.common.converter.EncodedValues;
@@ -38,6 +40,7 @@ import io.temporal.workflow.Workflow;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -474,10 +477,12 @@ public class WorkflowWorkerNative {
                 if (!isReplaying) {
                     logger.info("[JWorkflowAdapter] Invoking Ballerina execute method for {} with {} args",
                             workflowType, workflowArgs.length);
+                    logger.info("[JWorkflowAdapter] Executing on thread: {}", Thread.currentThread());
                 }
 
-                // Invoke the method with the strand
-                Object result = ballerinaRuntime.callMethod(serviceObject, "execute", null, ballerinaArgs);
+                // Execute Ballerina workflow logic directly on calling thread
+                // Note: Ballerina runtime appears incompatible with virtual threads
+                Object result = ballerinaRuntime.callMethod(serviceObject, "execute", new StrandMetadata(true, Collections.emptyMap()), ballerinaArgs);
 
                 if (!isReplaying) {
                     logger.info("[JWorkflowAdapter] Workflow {} completed with result type: {}",
@@ -778,9 +783,13 @@ public class WorkflowWorkerNative {
                     ballerinaArgs[i] = convertJavaToBallerinaType(javaArgs[i]);
                 }
 
-                // Call the Ballerina function with Runtime
+                // Call the Ballerina function with Runtime directly on calling thread
+                // Note: Ballerina runtime appears incompatible with virtual threads
                 System.out.println("[JActivityAdapter] Invoking Ballerina activity function: " + activityName);
+                System.out.println("[JActivityAdapter] Executing on thread: " + Thread.currentThread());
 
+                FPValue fpValue = (FPValue) activityFunction;
+                fpValue.metadata = new StrandMetadata(true, fpValue.metadata.properties());
                 Object result = activityFunction.call(ballerinaRuntime, ballerinaArgs);
                 System.out.println("[JActivityAdapter] Activity function call completed, result type: " +
                                            (result != null ? result.getClass().getSimpleName() : "null"));

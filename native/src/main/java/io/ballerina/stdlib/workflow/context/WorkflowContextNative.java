@@ -58,9 +58,12 @@ public class WorkflowContextNative {
             
             // Create untyped activity stub for executing activities
             ActivityOptions activityOptions = ActivityOptions.newBuilder()
-                .setStartToCloseTimeout(Duration.ofMinutes(2))
+                .setStartToCloseTimeout(Duration.ofMinutes(10))  // Max time for activity execution
+                .setScheduleToStartTimeout(Duration.ofMinutes(1))  // Max time waiting in queue
+                .setScheduleToCloseTimeout(Duration.ofMinutes(11))  // Total timeout including queue time
                 .setRetryOptions(io.temporal.common.RetryOptions.newBuilder()
                     .setMaximumAttempts(1)
+                    .setDoNotRetry(RuntimeException.class.getName())  // Don't retry on runtime exceptions
                     .build())
                 .build();
             
@@ -138,37 +141,14 @@ public class WorkflowContextNative {
             
             // Convert result back to Ballerina types if needed
             System.out.println("[JContext] Converting result back to Ballerina types...");
-            if (result instanceof String) {
-                System.out.println("[JContext] Converting String result to BString");
-                return StringUtils.fromString((String) result);
-            } else if (result instanceof Map) {
-                System.out.println("[JContext] Converting Map result to BMap...");
-                // Convert Java Map to Ballerina Map
-                @SuppressWarnings("unchecked")
-                Map<String, Object> javaMap = (Map<String, Object>) result;
-                
-                // Check if this is an error map (activity returned BError)
-                if (javaMap.containsKey("__error__") && Boolean.TRUE.equals(javaMap.get("__error__"))) {
-                    System.out.println("[JContext] Activity returned error value, converting to BError");
-                    String errorMessage = (String) javaMap.get("message");
-                    // Create Ballerina error from the error map
-                    return ErrorCreator.createError(StringUtils.fromString(errorMessage));
-                }
-                
-                // Regular map conversion
-                BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue();
-                for (Map.Entry<String, Object> entry : javaMap.entrySet()) {
-                    Object value = entry.getValue();
-                    Object ballerinaValue = value instanceof String ? 
-                        StringUtils.fromString((String) value) : value;
-                    ballerinaMap.put(StringUtils.fromString(entry.getKey()), ballerinaValue);
-                    System.out.println("[JContext] Map entry - " + entry.getKey() + ": " + ballerinaValue);
-                }
-                return ballerinaMap;
-            }
+            
+            // Use centralized conversion method for all return types
+            Object ballerinaResult = convertJavaToBallerinaType(result);
             
             System.out.println("[JContext] ========== executeActivity() EXIT [SUCCESS] ==========");
-            return result;
+            System.out.println("[JContext] Converted result type: " + 
+                (ballerinaResult != null ? ballerinaResult.getClass().getSimpleName() : "null"));
+            return ballerinaResult;
             
         } catch (io.temporal.failure.ActivityFailure e) {
             // Activity failed - extract error message and return as Ballerina error
@@ -503,6 +483,73 @@ public class WorkflowContextNative {
         SignalAwaitWrapper.recordSignal(signalName.getValue(), javaMap);
         System.out.println("[JContext] ========== recordSignal() EXIT [SUCCESS] ==========");
         return null;
+    }
+    
+    /**
+     * Convert Java types to Ballerina types for proper error detail reconstruction.
+     * Also handles BError reconstruction from serialized error maps.
+     * 
+     * @param javaValue Java object to convert
+     * @return Ballerina-compatible value
+     */
+    private static Object convertJavaToBallerinaType(Object javaValue) {
+        if (javaValue == null) {
+            return null;
+        }
+        
+        if (javaValue instanceof String) {
+            return StringUtils.fromString((String) javaValue);
+        } else if (javaValue instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> javaMap = (Map<String, Object>) javaValue;
+            
+            // Check if this is an error map (activity returned BError)
+            if (javaMap.containsKey("__error__") && Boolean.TRUE.equals(javaMap.get("__error__"))) {
+                System.out.println("[JContext] Detected error map, reconstructing BError");
+                
+                String errorMessage = (String) javaMap.get("message");
+                
+                // For now, just return error with message only
+                // TODO: Properly serialize and deserialize error details
+                System.out.println("[JContext] Creating BError with message only: " + errorMessage);
+                return ErrorCreator.createError(StringUtils.fromString(errorMessage));
+            }
+            
+            // Regular map conversion
+            BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue();
+            for (Map.Entry<String, Object> entry : javaMap.entrySet()) {
+                ballerinaMap.put(
+                    StringUtils.fromString(entry.getKey()),
+                    convertJavaToBallerinaType(entry.getValue())
+                );
+            }
+            return ballerinaMap;
+        } else if (javaValue instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<Object> javaList = (List<Object>) javaValue;
+            // For lists, convert to Ballerina map since we can't easily determine the array type
+            // In most error detail cases, lists are not commonly used
+            // If needed, could return as-is and let Ballerina handle it
+            return javaList;
+        } else if (javaValue instanceof Integer) {
+            // Convert Integer to Long for Ballerina compatibility
+            return ((Integer) javaValue).longValue();
+        } else if (javaValue instanceof Long) {
+            return javaValue;
+        } else if (javaValue instanceof Double) {
+            return javaValue;
+        } else if (javaValue instanceof Boolean) {
+            return javaValue;
+        } else if (javaValue instanceof java.math.BigDecimal) {
+            return javaValue;
+        } else if (javaValue instanceof Float) {
+            // Convert Float to Double for Ballerina compatibility
+            return ((Float) javaValue).doubleValue();
+        } else {
+            // For unknown types, convert to string for safety
+            System.out.println("[JContext] Converting unknown Java type to BString: " + javaValue.getClass().getName());
+            return StringUtils.fromString(javaValue.toString());
+        }
     }
     
     /**
