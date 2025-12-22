@@ -8,12 +8,12 @@ import hasitha/workflow;
 // - Send signals to workflows
 // - Query workflow status
 
-// Shared workflow client
+// Shared workflow client for ApprovalWorkflow
 final workflow:PersistenceProvider clientProvider = check new ({
     serviceUrl: "localhost:7233",
     namespace: "default"
 });
-final workflow:Client workflowClient = check new (clientProvider);
+final workflow:Client workflowClient = check new (clientProvider, "ApprovalWorkflow");
 
 // HTTP service on port 9090
 service /workflows on new http:Listener(9090) {
@@ -30,7 +30,6 @@ service /workflows on new http:Listener(9090) {
         string comment = check data.comment.ensureType();
 
         map<string> correlationData = {
-            "workflowType": "ApprovalWorkflow",
             "requestId": requestId
         };
 
@@ -63,7 +62,6 @@ service /workflows on new http:Listener(9090) {
         };
 
         string workflowId = check workflowClient->startWorkflow(
-            "ApprovalWorkflow",
             {
             correlationData: correlationData,
             workflowArgs: [requestId, amount, requester],
@@ -84,7 +82,6 @@ service /workflows on new http:Listener(9090) {
     // GET /workflows/approval/status/{requestId}
     resource function get approval/status/[string requestId]() returns json|error {
         map<string> correlationData = {
-            "workflowType": "ApprovalWorkflow",
             "requestId": requestId
         };
 
@@ -97,7 +94,6 @@ service /workflows on new http:Listener(9090) {
     // GET /workflows/approval/metadata/{requestId}
     resource function get approval/metadata/[string requestId]() returns json|error {
         map<string> correlationData = {
-            "workflowType": "ApprovalWorkflow",
             "requestId": requestId
         };
 

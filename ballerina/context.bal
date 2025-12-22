@@ -57,12 +57,12 @@ public isolated client class Context {
     #
     # + signalName - Signal name to wait for
     # + timeoutSeconds - Timeout in seconds
-    # + return - Signal data or error on timeout
+    # + return - Signal data (anydata) or error on timeout
     isolated remote function awaitSignal(
             string signalName,
             int timeoutSeconds
-    ) returns map<anydata>|error {
-        final map<anydata>|error result;
+    ) returns anydata|error {
+        final anydata|error result;
         lock {
             io:println("[BContext] AwaitSignal called for signal: " + signalName);
             result = awaitSignalNative(self.nativeContext, signalName, timeoutSeconds);
@@ -168,7 +168,7 @@ isolated function awaitSignalNative(
         handle context,
         string signalName,
         int timeoutSeconds
-) returns map<anydata>|error = @java:Method {
+) returns anydata|error = @java:Method {
     'class: "io.ballerina.stdlib.workflow.context.WorkflowContextNative",
     name: "awaitSignal"
 } external;

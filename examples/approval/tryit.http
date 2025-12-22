@@ -23,16 +23,16 @@ POST http://localhost:9090/workflows/approval/signal
 Content-Type: */*
 
 {
-    "requestId": "REQ-DIRECT-0013",
+    "requestId": "REQ-DIRECT-0015",
     "signalName": "approved",
-    "comment": "approved by manager"
+    "comment": "approved by hasitha"
   }
 
 HTTP/1.1 201  - Created
 content-type: application/json
 connection: close
 server: ballerina
-date: Mon, 22 Dec 2025 16:01:05 +0530
+date: Mon, 22 Dec 2025 16:37:02 +0530
 content-encoding: gzip
 content-length: 90
 ###
@@ -41,7 +41,7 @@ POST http://localhost:9090/workflows/approval
 Content-Type: */*
 
 {
-    "requestId": "REQ-DIRECT-0013",
+    "requestId": "REQ-DIRECT-0015",
     "amount": 500,
     "requester": "user@example.com"
   }
@@ -50,7 +50,7 @@ HTTP/1.1 201  - Created
 content-type: application/json
 connection: close
 server: ballerina
-date: Mon, 22 Dec 2025 16:00:05 +0530
+date: Mon, 22 Dec 2025 16:36:29 +0530
 content-encoding: gzip
 content-length: 121
 ###
@@ -65,22 +65,22 @@ date: Mon, 22 Dec 2025 15:52:26 +0530
 content-encoding: gzip
 content-length: 58
 ###
-GET http://localhost:9090/workflows/approval/status/REQ-DIRECT-0013
+GET http://localhost:9090/workflows/approval/status/REQ-DIRECT-0015
 
 HTTP/1.1 200  - OK
 content-type: application/json
 connection: close
 server: ballerina
-date: Mon, 22 Dec 2025 16:01:43 +0530
+date: Mon, 22 Dec 2025 16:38:46 +0530
 content-encoding: gzip
-content-length: 127
+content-length: 128
 ###
-GET http://localhost:9090/workflows/approval/metadata/REQ-DIRECT-0013
+GET http://localhost:9090/workflows/approval/metadata/REQ-DIRECT-0015
 
 HTTP/1.1 200  - OK
 content-type: application/json
 connection: close
 server: ballerina
-date: Mon, 22 Dec 2025 16:00:22 +0530
+date: Mon, 22 Dec 2025 16:36:48 +0530
 content-encoding: gzip
 content-length: 96

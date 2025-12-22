@@ -34,20 +34,43 @@ service "ApprovalWorkflow" on approvalListener {
 
         io:println(string `[Workflow ${self.workflowInstanceId}] Document validated, waiting for signal...`);
 
-        // Step 2: Wait for either approval or rejection signal
-        map<anydata> result = check ctx->awaitSignal(
+        // Step 2: Wait for approval signal
+        // Now returns anydata directly from signal handler remote method if defined
+        anydata result = check ctx->awaitSignal(
             "approved",
             86400 // 24 hours timeout
         );
-
-        string signalName = result["signalName"].toString();
-        anydata signalData = result["data"] ?: {};
         
-        io:println(string `[Workflow ${self.workflowInstanceId}] Received signal: ${signalName}`);
+        io:println(string `[Workflow ${self.workflowInstanceId}] Received signal result: ${result.toString()}`);
         io:println(string `[Workflow ${self.workflowInstanceId}] Total executions in this instance: ${self.executionCount}`);
         
         self.status = "Done";
         return string `Workflow ${self.workflowInstanceId} completed by ${self.initiatedBy} after ${self.executionCount} execution(s)`;
+    }
+
+    # Signal handler for 'approved' signal
+    # This remote method is called when 'approved' signal is received
+    # Allows extending signal logic with custom processing
+    # + signalData - Data sent with the signal
+    # + return - Result to be returned to awaitSignal caller
+    isolated remote function approved(map<anydata> signalData) returns anydata {
+        io:println(string `[Workflow ${self.workflowInstanceId}] Signal handler 'approved' called`);
+        
+        // Extract comment from signal data
+        string comment = signalData["comment"].toString();
+        io:println(string `[Workflow ${self.workflowInstanceId}] Approval comment: ${comment}`);
+        
+        // Can perform additional processing here
+        // Update state, log, etc.
+        self.status = "Approved";
+        
+        // Return enriched data back to awaitSignal caller
+        return {
+            "approved": true,
+            "comment": comment,
+            "processedBy": "signal-handler",
+            "timestamp": "2025-12-22T10:00:00Z"
+        };
     }
 
     # Query workflow status - read-only operation

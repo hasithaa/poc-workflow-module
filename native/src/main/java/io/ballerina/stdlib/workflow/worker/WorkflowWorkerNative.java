@@ -32,6 +32,7 @@ import io.ballerina.runtime.api.values.BString;
 import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.internal.values.FPValue;
 import io.ballerina.stdlib.workflow.context.SignalAwaitWrapper;
+import io.ballerina.stdlib.workflow.utils.TypesUtil;
 import io.temporal.activity.DynamicActivity;
 import io.temporal.client.WorkflowClient;
 import io.temporal.common.converter.EncodedValues;
@@ -484,10 +485,51 @@ public class WorkflowWorkerNative {
                         logger.warn("[JWorkflowAdapter] Could not extract signal data as Map: {}", e.getMessage());
                     }
                     
+                    // Try to invoke remote method handler for this signal
+                    Object signalResult = null;
+                    boolean remoteMethodInvoked = false;
+                    
+                    if (this.serviceObject != null) {
+                        try {
+                            logger.info("[JWorkflowAdapter] Attempting to invoke remote method: {}", signalName);
+                            
+                            // Convert signal data to Ballerina map<anydata>
+                            Object ballerinaSignalData = TypesUtil.convertJavaToBallerinaType(signalData);
+                            Object[] methodArgs = new Object[]{ballerinaSignalData};
+                            
+                            // Invoke the remote method (if it exists)
+                            signalResult = ballerinaRuntime.callMethod(
+                                this.serviceObject,
+                                signalName,
+                                new StrandMetadata(true, Collections.emptyMap()),
+                                methodArgs
+                            );
+                            
+                            // Check if method returned an error - log but don't fail
+                            if (signalResult instanceof io.ballerina.runtime.api.values.BError) {
+                                io.ballerina.runtime.api.values.BError error = (io.ballerina.runtime.api.values.BError) signalResult;
+                                logger.warn("[JWorkflowAdapter] Signal handler method '{}' returned error: {}", 
+                                    signalName, error.getMessage());
+                                // Still use the error as the signal result
+                            }
+                            
+                            remoteMethodInvoked = true;
+                            logger.info("[JWorkflowAdapter] Remote method '{}' invoked successfully", signalName);
+                            
+                        } catch (Exception e) {
+                            // Method might not exist - that's okay, just log at debug level
+                            logger.debug("[JWorkflowAdapter] No remote method '{}' found or invocation failed: {}", 
+                                signalName, e.getMessage());
+                            // Fall back to default behavior (record signal data only)
+                        }
+                    }
+                    
                     // Record the signal so awaitSignal can pick it up
-                    logger.info("[JWorkflowAdapter] Recording signal: {} with {} data entries", 
-                        signalName, signalData.size());
-                    SignalAwaitWrapper.recordSignal(signalName, signalData);
+                    // If remote method was invoked, record its result; otherwise record the signal data
+                    Object resultToRecord = remoteMethodInvoked ? signalResult : signalData;
+                    
+                    logger.info("[JWorkflowAdapter] Recording signal: {} with result", signalName);
+                    SignalAwaitWrapper.recordSignal(signalName, resultToRecord);
                     logger.info("[JWorkflowAdapter] Signal {} recorded successfully", signalName);
                 }
             );
@@ -740,10 +782,6 @@ public class WorkflowWorkerNative {
         }
 
         private Object[] extractWorkflowArguments(EncodedValues args) {
-            // Extract arguments carefully without blocking
-            // For approval workflow: documentId (String), submitter (String)
-            // For order workflow: orderId, customerId, amount
-            // For saga workflow: transactionId, fromAccount, toAccount, amount
 
             List<Object> argsList = new ArrayList<>();
 

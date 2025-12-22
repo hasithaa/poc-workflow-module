@@ -192,17 +192,20 @@ public class WorkflowClientNative {
      * Send signal to workflow using correlation data.
      * 
      * @param clientHandle Client handle
-     * @param correlationData Correlation data to identify workflow instance
+     * @param workflowType Workflow type name (for correlation resolution)
+     * @param correlationData Correlation data to identify workflow instance (without workflowType)
      * @param signalName Signal name
      * @param signalData Signal payload data
      * @return null on success, error on failure
      */
     public static Object sendSignal(
             Object clientHandle,
+            BString workflowType,
             BMap<BString, BString> correlationData,
             BString signalName,
             BMap<BString, BString> signalData) {
         System.out.println("[JClient] ========== sendSignal() ENTRY ==========");
+        System.out.println("[JClient] Workflow type: " + workflowType.getValue());
         System.out.println("[JClient] Signal name: " + signalName.getValue());
         try {
             if (!(clientHandle instanceof WorkflowClient)) {
@@ -217,6 +220,8 @@ public class WorkflowClientNative {
             // Convert correlation data to Java Map
             System.out.println("[JClient] Converting correlation data...");
             Map<String, String> correlationMap = new HashMap<>();
+            // Add workflowType to correlation data for resolution
+            correlationMap.put("workflowType", workflowType.getValue());
             if (correlationData != null) {
                 for (BString key : correlationData.getKeys()) {
                     String keyStr = key.getValue();
@@ -273,15 +278,18 @@ public class WorkflowClientNative {
      * Query workflow state.
      * 
      * @param clientHandle Client handle
-     * @param correlationData Correlation data to identify workflow instance
+     * @param workflowType Workflow type name (for correlation resolution)
+     * @param correlationData Correlation data to identify workflow instance (without workflowType)
      * @param queryName Query name
      * @return Query result or error
      */
     public static Object queryWorkflow(
             Object clientHandle,
+            BString workflowType,
             BMap<BString, BString> correlationData,
             BString queryName) {
         System.out.println("[JClient] ========== queryWorkflow() ENTRY ==========");
+        System.out.println("[JClient] Workflow type: " + workflowType.getValue());
         System.out.println("[JClient] Query name: " + queryName.getValue());
         try {
             if (!(clientHandle instanceof WorkflowClient)) {
@@ -296,6 +304,8 @@ public class WorkflowClientNative {
             // Convert correlation data to Java Map
             System.out.println("[JClient] Converting correlation data...");
             Map<String, String> correlationMap = new HashMap<>();
+            // Add workflowType to correlation data for resolution
+            correlationMap.put("workflowType", workflowType.getValue());
             if (correlationData != null) {
                 for (BString key : correlationData.getKeys()) {
                     String keyStr = key.getValue();

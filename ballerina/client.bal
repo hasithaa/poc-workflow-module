@@ -21,39 +21,40 @@ import ballerina/io;
 public isolated client class Client {
 
     private handle nativeClient;
+    private final string workflowType;
 
-    # Initialize workflow client with persistence provider
+    # Initialize workflow client with persistence provider and workflow type
     #
     # + provider - Persistence provider
+    # + workflowType - Workflow type name (service name) for all operations
     # + return - Error if initialization fails
-    public isolated function init(PersistenceProvider provider) returns error? {
-        io:println("[BClient] Client.init() called");
+    public isolated function init(PersistenceProvider provider, string workflowType) returns error? {
+        io:println("[BClient] Client.init() called for workflow type: " + workflowType);
         handle temporalClient = provider.getClientHandle();
         self.nativeClient = check initWorkflowClient(temporalClient);
+        self.workflowType = workflowType;
         io:println("[BClient] Client.init() completed");
     }
 
     # Start a workflow with correlation data
     #
-    # + workflowType - Workflow type name (service name)
     # + params - Workflow start parameters
     # + return - Computed workflow ID or error
     isolated remote function startWorkflow(
-            string workflowType,
             WorkflowStartParams params
     ) returns string|error {
         final string|error result;
         lock {
-            io:println("[BClient] StartWorkflow called for workflow type: " + workflowType);
-            result = startWorkflowNative(self.nativeClient, workflowType, params.clone());
-            io:println("[BClient] StartWorkflow completed for workflow type: " + workflowType);
+            io:println("[BClient] StartWorkflow called for workflow type: " + self.workflowType);
+            result = startWorkflowNative(self.nativeClient, self.workflowType, params.clone());
+            io:println("[BClient] StartWorkflow completed for workflow type: " + self.workflowType);
         }
         return result;
     }
 
     # Send signal to workflow using correlation data
     #
-    # + correlationData - Correlation data to identify workflow instance
+    # + correlationData - Correlation data to identify workflow instance (without workflowType)
     # + signalName - Signal name
     # + signalData - Signal payload data
     # + return - Error if signal fails
@@ -64,14 +65,14 @@ public isolated client class Client {
     ) returns error? {
         lock {
             io:println("[BClient] Signal called for signal: " + signalName);
-            check sendSignalNative(self.nativeClient, correlationData.clone(), signalName, signalData.clone());
+            check sendSignalNative(self.nativeClient, self.workflowType, correlationData.clone(), signalName, signalData.clone());
             io:println("[BClient] Signal completed for signal: " + signalName);
         }
     }
 
     # Query workflow state
     #
-    # + correlationData - Correlation data to identify workflow instance
+    # + correlationData - Correlation data to identify workflow instance (without workflowType)
     # + queryName - Query name
     # + return - Query result or error
     isolated remote function query(
@@ -81,7 +82,7 @@ public isolated client class Client {
         final anydata|error result;
         lock {
             io:println("[BClient] Query called for query: " + queryName);
-            result = queryWorkflowNative(self.nativeClient, correlationData.clone(), queryName);
+            result = queryWorkflowNative(self.nativeClient, self.workflowType, correlationData.clone(), queryName);
             io:println("[BClient] Query completed for query: " + queryName);
         }
         return result;
@@ -104,6 +105,7 @@ isolated function startWorkflowNative(
 
 isolated function sendSignalNative(
         handle 'client,
+        string workflowType,
         map<string> correlationData,
         string signalName,
         map<string> signalData
@@ -114,6 +116,7 @@ isolated function sendSignalNative(
 
 isolated function queryWorkflowNative(
         handle 'client,
+        string workflowType,
         map<string> correlationData,
         string queryName
 ) returns anydata|error = @java:Method {

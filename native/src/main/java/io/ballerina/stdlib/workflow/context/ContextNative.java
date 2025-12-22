@@ -74,31 +74,45 @@ public class ContextNative {
      * @param workflowInfo Workflow information handle
      * @param signalName Signal name to wait for
      * @param timeoutSeconds Timeout in seconds
-     * @return Map containing signal data, or error if timeout
+     * @return Signal result (anydata) or error if timeout
      */
     public static Object awaitSignal(
             Object workflowInfo,
             BString signalName,
             long timeoutSeconds) {
         try {
-            Map<String, Object> data = SignalAwaitWrapper.awaitSignal(
+            Object signalResult = SignalAwaitWrapper.awaitSignal(
                 signalName.getValue(),
                 (int) timeoutSeconds
             );
             
-            if (data != null) {
-                // Convert Java Map to Ballerina Map with proper anydata type
-                @SuppressWarnings("unchecked")
-                BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue(
-                    io.ballerina.runtime.api.creators.TypeCreator.createMapType(
-                        io.ballerina.runtime.api.types.PredefinedTypes.TYPE_ANYDATA));
-                for (Map.Entry<String, Object> entry : data.entrySet()) {
-                    ballerinaMap.put(
-                            StringUtils.fromString(entry.getKey()),
-                            convertJavaToBallerinaType(entry.getValue())
-                                    );
+            if (signalResult != null) {
+                // If result is already a Ballerina type (from remote method), return as-is
+                if (signalResult instanceof io.ballerina.runtime.api.values.BValue) {
+                    return signalResult;
                 }
-                return ballerinaMap;
+                
+                // If result is a Java Map (no remote method handler), convert to Ballerina map<anydata>
+                if (signalResult instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> data = (Map<String, Object>) signalResult;
+                    
+                    // Convert Java Map to Ballerina Map with proper anydata type
+                    @SuppressWarnings("unchecked")
+                    BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue(
+                        io.ballerina.runtime.api.creators.TypeCreator.createMapType(
+                            io.ballerina.runtime.api.types.PredefinedTypes.TYPE_ANYDATA));
+                    for (Map.Entry<String, Object> entry : data.entrySet()) {
+                        ballerinaMap.put(
+                                StringUtils.fromString(entry.getKey()),
+                                convertJavaToBallerinaType(entry.getValue())
+                                        );
+                    }
+                    return ballerinaMap;
+                }
+                
+                // For other Java types, attempt conversion
+                return convertJavaToBallerinaType(signalResult);
             } else {
                 return ErrorCreator.createError(
                         StringUtils.fromString("Timeout waiting for signal: " + signalName.getValue()));

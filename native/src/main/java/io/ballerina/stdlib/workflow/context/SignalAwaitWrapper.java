@@ -51,24 +51,26 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class SignalAwaitWrapper {
 
     /**
-     * Signal queue - stores received signals with their data.
+     * Signal queue - stores received signals with their results.
      * Key: signal name
-     * Value: Queue of signal data (supports multiple signals with same name)
+     * Value: Queue of signal results (anydata - can be Map, BError, primitive, or any Ballerina value)
+     * Supports multiple signals with same name in queue.
      */
-    private static final Map<String, LinkedBlockingQueue<Map<String, Object>>> signalQueues =
+    private static final Map<String, LinkedBlockingQueue<Object>> signalQueues =
         new ConcurrentHashMap<>();
 
     /**
      * Wait for a specific signal by name.
+     * Returns the signal result (from remote method if defined, or signal data Map).
      * 
      * @param signalName The name of the signal to wait for
      * @param timeoutSeconds Timeout in seconds
-     * @return Map containing signal data, or null if timeout
+     * @return Signal result (anydata), or null if timeout
      */
-    public static Map<String, Object> awaitSignal(String signalName, int timeoutSeconds) {
+    public static Object awaitSignal(String signalName, int timeoutSeconds) {
         // Ensure queue exists for this signal
         signalQueues.putIfAbsent(signalName, new LinkedBlockingQueue<>());
-        LinkedBlockingQueue<Map<String, Object>> queue = signalQueues.get(signalName);
+        LinkedBlockingQueue<Object> queue = signalQueues.get(signalName);
         
         // Use Workflow.await() to wait for signal to be queued
         // MUST be called directly from workflow thread
@@ -78,9 +80,9 @@ public class SignalAwaitWrapper {
         );
         
         if (received) {
-            // Signal received - get the data
-            Map<String, Object> signalData = queue.poll();
-            return signalData;
+            // Signal received - get the result
+            Object signalResult = queue.poll();
+            return signalResult;
         } else {
             // Timeout
             return null;
@@ -88,25 +90,26 @@ public class SignalAwaitWrapper {
     }
 
     /**
-     * Record that a signal was received.
+     * Record that a signal was received with its result.
      * This should be called from the signal handler method.
      * 
      * @param signalName The name of the signal
-     * @param signalData Data associated with the signal
+     * @param signalResult Result from signal handler remote method (anydata) or signal data Map
      */
-    public static void recordSignal(String signalName, Map<String, Object> signalData) {
+    public static void recordSignal(String signalName, Object signalResult) {
         signalQueues.putIfAbsent(signalName, new LinkedBlockingQueue<>());
-        LinkedBlockingQueue<Map<String, Object>> queue = signalQueues.get(signalName);
-        queue.offer(signalData != null ? signalData : new HashMap<>());
+        LinkedBlockingQueue<Object> queue = signalQueues.get(signalName);
+        // Store the actual result (could be Map, BError, primitive, or any Ballerina value)
+        queue.offer(signalResult != null ? signalResult : new HashMap<>());
     }
 
     /**
      * Wait for any of multiple signals.
-     * Returns the name of the signal that was received first.
+     * Returns the name of the signal that was received first and its result.
      * 
      * @param signalNames Array of signal names to wait for
      * @param timeoutSeconds Timeout in seconds
-     * @return SignalResult containing signal name and data
+     * @return SignalResult containing signal name and result data
      */
     public static SignalResult awaitAnySignal(String[] signalNames, int timeoutSeconds) {
         // Ensure queues exist
@@ -130,10 +133,10 @@ public class SignalAwaitWrapper {
         if (received) {
             // Find which signal was received
             for (String signalName : signalNames) {
-                LinkedBlockingQueue<Map<String, Object>> queue = signalQueues.get(signalName);
+                LinkedBlockingQueue<Object> queue = signalQueues.get(signalName);
                 if (!queue.isEmpty()) {
-                    Map<String, Object> data = queue.poll();
-                    return new SignalResult(signalName, data);
+                    Object result = queue.poll();
+                    return new SignalResult(signalName, result);
                 }
             }
         }
@@ -149,10 +152,10 @@ public class SignalAwaitWrapper {
      * @return SignalResult if signal exists, null otherwise
      */
     public static SignalResult checkSignal(String signalName) {
-        LinkedBlockingQueue<Map<String, Object>> queue = signalQueues.get(signalName);
+        LinkedBlockingQueue<Object> queue = signalQueues.get(signalName);
         if (queue != null && !queue.isEmpty()) {
-            Map<String, Object> data = queue.poll();
-            return new SignalResult(signalName, data);
+            Object result = queue.poll();
+            return new SignalResult(signalName, result);
         }
         return null;
     }
@@ -170,9 +173,9 @@ public class SignalAwaitWrapper {
      */
     public static class SignalResult {
         private final String signalName;
-        private final Map<String, Object> data;
+        private final Object data;
         
-        public SignalResult(String signalName, Map<String, Object> data) {
+        public SignalResult(String signalName, Object data) {
             this.signalName = signalName;
             this.data = data;
         }
@@ -181,12 +184,16 @@ public class SignalAwaitWrapper {
             return signalName;
         }
         
-        public Map<String, Object> getData() {
+        public Object getData() {
             return data;
         }
         
         public Object get(String key) {
-            return data != null ? data.get(key) : null;
+            // Support map-like access if data is a Map
+            if (data instanceof Map) {
+                return ((Map<?, ?>) data).get(key);
+            }
+            return null;
         }
         
         @Override
