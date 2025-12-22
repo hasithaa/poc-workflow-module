@@ -1,0 +1,18 @@
+{
+    "user": "alice@example.com",
+    "id": "req_10001",
+    "claims": [
+        {
+            "claim": "clm_01",
+            "amount": "1000"
+        },
+        {
+            "claim": "clm_02",
+            "amount": "900"
+        },
+        {
+            "claim": "clm_03",
+            "amount": "1200"
+        }
+    ]
+}

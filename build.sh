@@ -14,3 +14,14 @@ cd ../examples/approval
 rm -rf target
 bal clean
 bal build
+
+# Build Other Examples
+cd ../ai_claim_approval/workflow
+rm -rf target
+bal clean
+bal build
+
+cd ../client_integration
+rm -rf target
+bal clean
+bal build

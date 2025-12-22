@@ -1,0 +1,14 @@
+[package]
+org = "hasitha"
+name = "ClaimApprovalWorkflow"
+version = "0.1.0"
+distribution = "2201.13.0"
+
+[build-options]
+observabilityIncluded = true
+
+[[dependency]]
+org = "hasitha"
+name = "workflow"
+version = "0.1.0"
+repository="local"
