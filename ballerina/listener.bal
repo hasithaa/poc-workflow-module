@@ -15,7 +15,6 @@
 // under the License.
 
 import ballerina/jballerina.java;
-import ballerina/io;
 
 # Workflow listener for registering workflow services
 public class Listener {
@@ -32,11 +31,11 @@ public class Listener {
             PersistenceProvider provider,
             ListenerConfig config
     ) returns error? {
-        io:println("[BListener] Listener.init() called for task queue: " + config.taskQueue);
+        // io:println("[BListener] Listener.init() called for task queue: " + config.taskQueue);
         self.config = config.clone();
         handle temporalClient = provider.getClientHandle();
         self.nativeWorker = check initWorkflowWorker(temporalClient, config);
-        io:println("[BListener] Listener.init() completed for task queue: " + config.taskQueue);
+        // io:println("[BListener] Listener.init() completed for task queue: " + config.taskQueue);
     }
 
     # Attach workflow service to listener
@@ -46,9 +45,9 @@ public class Listener {
     # + return - Error if attachment fails
     public function attach(service object {} s, string[]|string? name = ()) returns error? {
         string serviceName = name is string ? name : (name is string[] ? name[0] : "");
-        io:println("[BListener] Listener.attach() called for service: " + serviceName);
+        // io:println("[BListener] Listener.attach() called for service: " + serviceName);
         check attachServiceNative(self.nativeWorker, s, serviceName);
-        io:println("[BListener] Listener.attach() completed for service: " + serviceName);
+        // io:println("[BListener] Listener.attach() completed for service: " + serviceName);
     }
 
     # Detach workflow service from listener
@@ -56,36 +55,36 @@ public class Listener {
     # + s - Workflow service object
     # + return - Error if detachment fails
     public function detach(service object {} s) returns error? {
-        io:println("[BListener] Listener.detach() called");
+        // io:println("[BListener] Listener.detach() called");
         check detachServiceNative(self.nativeWorker, s);
-        io:println("[BListener] Listener.detach() completed");
+        // io:println("[BListener] Listener.detach() completed");
     }
 
     # Start the workflow worker (blocking)
     #
     # + return - Error if start fails
     public function 'start() returns error? {
-        io:println("[BListener] Listener.start() called for task queue: " + self.config.taskQueue);
+        // io:println("[BListener] Listener.start() called for task queue: " + self.config.taskQueue);
         check startWorkerNative(self.nativeWorker);
-        io:println("[BListener] Listener.start() completed for task queue: " + self.config.taskQueue);
+        // io:println("[BListener] Listener.start() completed for task queue: " + self.config.taskQueue);
     }
 
     # Gracefully stop the workflow worker
     #
     # + return - Error if stop fails
     public function gracefulStop() returns error? {
-        io:println("[BListener] Listener.gracefulStop() called");
+        // io:println("[BListener] Listener.gracefulStop() called");
         check stopWorkerNative(self.nativeWorker);
-        io:println("[BListener] Listener.gracefulStop() completed");
+        // io:println("[BListener] Listener.gracefulStop() completed");
     }
 
     # Immediately stop the workflow worker
     #
     # + return - Error if stop fails
     public function immediateStop() returns error? {
-        io:println("[BListener] Listener.immediateStop() called");
+        // io:println("[BListener] Listener.immediateStop() called");
         check stopWorkerNative(self.nativeWorker);
-        io:println("[BListener] Listener.immediateStop() completed");
+        // io:println("[BListener] Listener.immediateStop() completed");
     }
 }
 
@@ -133,9 +132,9 @@ public isolated function registerActivity(
         string activityName,
         function activityFunction
 ) returns error? {
-    io:println("[BActivity] RegisterActivity called for activity: " + activityName);
+    // io:println("[BActivity] RegisterActivity called for activity: " + activityName);
     error? result = registerActivityNative(activityName, activityFunction);
-    io:println("[BActivity] RegisterActivity completed for activity: " + activityName);
+    // io:println("[BActivity] RegisterActivity completed for activity: " + activityName);
     return result;
 }
 

@@ -75,8 +75,8 @@ public class WorkflowWorkerNative {
     public static void init(Environment env) {
         workflowModule = env.getCurrentModule();
         ballerinaRuntime = env.getRuntime();
-        System.out.println("[JWorker] WorkflowWorkerNative initialized with module: " + workflowModule);
-        System.out.println("[JWorker] Ballerina Runtime captured: " + ballerinaRuntime);
+        // System.out.println("[JWorker] WorkflowWorkerNative initialized with module: " + workflowModule);
+        // System.out.println("[JWorker] Ballerina Runtime captured: " + ballerinaRuntime);
     }
 
     /**
@@ -88,7 +88,7 @@ public class WorkflowWorkerNative {
      */
     public static Object initWorker(Object temporalClient, BMap<BString, Object> config) {
         try {
-            System.out.println("[JWorker] WorkflowWorkerNative.initWorker() called");
+            // System.out.println("[JWorker] WorkflowWorkerNative.initWorker() called");
             if (!(temporalClient instanceof WorkflowClient)) {
                 return ErrorCreator.createError(
                         StringUtils.fromString("Invalid Temporal client handle"));
@@ -103,7 +103,7 @@ public class WorkflowWorkerNative {
                         StringUtils.fromString("taskQueue is required in listener config"));
             }
             String taskQueue = taskQueueBStr.getValue();
-            System.out.println("[JWorker] Initializing worker for task queue: " + taskQueue);
+            // System.out.println("[JWorker] Initializing worker for task queue: " + taskQueue);
 
             Object maxConcurrentWorkflowsObj = config.get(StringUtils.fromString("maxConcurrentWorkflows"));
             int maxConcurrentWorkflows = maxConcurrentWorkflowsObj instanceof Long ?
@@ -129,7 +129,7 @@ public class WorkflowWorkerNative {
             context.worker = worker;
             context.taskQueue = taskQueue;
 
-            System.out.println("[JWorker] Worker context created successfully for task queue: " + taskQueue);
+            // System.out.println("[JWorker] Worker context created successfully for task queue: " + taskQueue);
             return context;
 
         } catch (Exception e) {
@@ -151,7 +151,7 @@ public class WorkflowWorkerNative {
             BObject serviceObj,
             BString serviceName) {
         try {
-            System.out.println("[JWorker] WorkflowWorkerNative.attachService() called for: " + serviceName.getValue());
+            // System.out.println("[JWorker] WorkflowWorkerNative.attachService() called for: " + serviceName.getValue());
             if (!(workerHandle instanceof WorkerContext)) {
                 return ErrorCreator.createError(
                         StringUtils.fromString("Invalid worker handle"));
@@ -169,35 +169,35 @@ public class WorkflowWorkerNative {
             context.registeredServices.put(workflowType, serviceObj);
             SERVICE_REGISTRY.put(workflowType, serviceObj);
 
-            System.out.println("[JWorker] Registered service for workflow type: " + workflowType);
+            // System.out.println("[JWorker] Registered service for workflow type: " + workflowType);
 
             // Register dynamic workflow implementation ONCE per worker
             if (!context.dynamicWorkflowRegistered) {
-                System.out.println(
-                        "[JWorker] Registering dynamic workflow adapter on task queue: " + context.taskQueue);
+                // System.out.println(
+                //         "[JWorker] Registering dynamic workflow adapter on task queue: " + context.taskQueue);
 
                 // Register the BallerinaWorkflowAdapter to handle all workflow types on this queue
                 // It implements DynamicWorkflow so it will handle any workflow type
                 context.worker.registerWorkflowImplementationTypes(BallerinaWorkflowAdapter.class);
                 context.dynamicWorkflowRegistered = true;
 
-                System.out.println("[JWorker] Dynamic workflow adapter registered successfully");
+                // System.out.println("[JWorker] Dynamic workflow adapter registered successfully");
             } else {
-                System.out.println("[JWorker] Dynamic workflow adapter already registered for this worker");
+                // System.out.println("[JWorker] Dynamic workflow adapter already registered for this worker");
             }
 
             // Register dynamic activity implementation ONCE per worker
             if (!context.dynamicActivityRegistered) {
-                System.out.println(
-                        "[JWorker] Registering dynamic activity adapter on task queue: " + context.taskQueue);
+                // System.out.println(
+                //         "[JWorker] Registering dynamic activity adapter on task queue: " + context.taskQueue);
 
                 // Register the BallerinaActivityAdapter to handle all activity types on this queue
                 context.worker.registerActivitiesImplementations(new BallerinaActivityAdapter());
                 context.dynamicActivityRegistered = true;
 
-                System.out.println("[JWorker] Dynamic activity adapter registered successfully");
+                // System.out.println("[JWorker] Dynamic activity adapter registered successfully");
             } else {
-                System.out.println("[JWorker] Dynamic activity adapter already registered for this worker");
+                // System.out.println("[JWorker] Dynamic activity adapter already registered for this worker");
             }
 
             return null;
@@ -258,7 +258,7 @@ public class WorkflowWorkerNative {
      */
     public static Object startWorker(Object workerHandle) {
         try {
-            System.out.println("[JWorker] WorkflowWorkerNative.startWorker() called");
+            // System.out.println("[JWorker] WorkflowWorkerNative.startWorker() called");
             if (!(workerHandle instanceof WorkerContext)) {
                 return ErrorCreator.createError(
                         StringUtils.fromString("Invalid worker handle"));
@@ -266,18 +266,18 @@ public class WorkflowWorkerNative {
 
             WorkerContext context = (WorkerContext) workerHandle;
 
-            System.out.println("[JWorker] Starting worker factory for task queue: " + context.taskQueue);
+            // System.out.println("[JWorker] Starting worker factory for task queue: " + context.taskQueue);
 
             // Start the worker factory in a background thread to avoid blocking
             Thread workerThread = new Thread(() -> {
                 try {
-                    System.out.println("[JWorker] Worker thread starting for task queue: " + context.taskQueue);
+                    // System.out.println("[JWorker] Worker thread starting for task queue: " + context.taskQueue);
                     context.workerFactory.start();
-                    System.out.println(
-                            "[JWorker] Worker factory started and polling for task queue: " + context.taskQueue);
+                    // System.out.println(
+                    //         "[JWorker] Worker factory started and polling for task queue: " + context.taskQueue);
                 } catch (Exception e) {
-                    System.err.println(
-                            "[JWorker] Worker failed for task queue " + context.taskQueue + ": " + e.getMessage());
+                    // System.err.println(
+                    //         "[JWorker] Worker failed for task queue " + context.taskQueue + ": " + e.getMessage());
                 }
             }, "temporal-worker-" + context.taskQueue);
 
@@ -287,7 +287,7 @@ public class WorkflowWorkerNative {
             // Give it a moment to initialize
             Thread.sleep(100);
 
-            System.out.println("[JWorker] Worker thread launched successfully for task queue: " + context.taskQueue);
+            // System.out.println("[JWorker] Worker thread launched successfully for task queue: " + context.taskQueue);
             return null;
 
         } catch (Exception e) {
@@ -335,7 +335,7 @@ public class WorkflowWorkerNative {
         if (ballerinaValue instanceof io.ballerina.runtime.api.values.BError) {
             Map<String, Object> errorMap = getErrorMap((BError) ballerinaValue);
 
-            System.out.println("[JActivityAdapter] Converted BError to serializable map: " + errorMap);
+            // System.out.println("[JActivityAdapter] Converted BError to serializable map: " + errorMap);
             return errorMap;
         }
 
@@ -370,8 +370,8 @@ public class WorkflowWorkerNative {
             return ballerinaValue;
         } else {
             // For unknown types, convert to string to avoid serialization issues
-            System.out.println("[JActivityAdapter] Converting unknown type to string: " +
-                                       ballerinaValue.getClass().getName());
+            // System.out.println("[JActivityAdapter] Converting unknown type to string: " +
+            //                            ballerinaValue.getClass().getName());
             return ballerinaValue.toString();
         }
     }
@@ -400,7 +400,7 @@ public class WorkflowWorkerNative {
         try {
             String name = activityName.getValue();
             ACTIVITY_REGISTRY.put(name, activityFunction);
-            System.out.println("[JActivity] Registered activity: " + name);
+            // System.out.println("[JActivity] Registered activity: " + name);
             return null;
         } catch (Exception e) {
             return ErrorCreator.createError(
@@ -721,12 +721,12 @@ public class WorkflowWorkerNative {
                 logger.error("[JWorkflowAdapter] ========================================");
                 
                 // Print to stderr as well for immediate visibility
-                System.err.println("[JWorkflowAdapter] ========================================");
-                System.err.println("[JWorkflowAdapter] WORKFLOW EXECUTION FAILED: " + workflowType);
-                System.err.println("[JWorkflowAdapter] Exception: " + e.getClass().getName());
-                System.err.println("[JWorkflowAdapter] Message: " + e.getMessage());
+                // System.err.println("[JWorkflowAdapter] ========================================");
+                // System.err.println("[JWorkflowAdapter] WORKFLOW EXECUTION FAILED: " + workflowType);
+                // System.err.println("[JWorkflowAdapter] Exception: " + e.getClass().getName());
+                // System.err.println("[JWorkflowAdapter] Message: " + e.getMessage());
                 e.printStackTrace(System.err);
-                System.err.println("[JWorkflowAdapter] ========================================");
+                // System.err.println("[JWorkflowAdapter] ========================================");
                 
                 // Create detailed error message with exception type and message
                 String detailedErrorMsg = String.format("Workflow '%s' encountered an error: %s - %s", 
@@ -948,14 +948,14 @@ public class WorkflowWorkerNative {
                         io.temporal.activity.Activity.getExecutionContext();
                 String activityName = activityContext.getInfo().getActivityType();
 
-                System.out.println("[JActivityAdapter] BallerinaActivityAdapter executing activity: " + activityName);
+                // System.out.println("[JActivityAdapter] BallerinaActivityAdapter executing activity: " + activityName);
 
                 // Look up the registered Ballerina function for this activity
                 BFunctionPointer activityFunction = ACTIVITY_REGISTRY.get(activityName);
                 if (activityFunction == null) {
                     String errorMsg = "Activity not registered: " + activityName +
                             ". Available activities: " + ACTIVITY_REGISTRY.keySet();
-                    System.err.println("[JActivityAdapter] " + errorMsg);
+                    // System.err.println("[JActivityAdapter] " + errorMsg);
                     throw new RuntimeException(errorMsg);
                 }
 
@@ -976,10 +976,10 @@ public class WorkflowWorkerNative {
                     }
                 }
                 Object[] javaArgs = argsList.toArray();
-                System.out.println("[JActivityAdapter] Activity args count: " + javaArgs.length);
+                // System.out.println("[JActivityAdapter] Activity args count: " + javaArgs.length);
                 if (javaArgs.length > 0) {
-                    System.out.println("[JActivityAdapter] First arg: " + javaArgs[0] + " (type: " +
-                                               javaArgs[0].getClass().getSimpleName() + ")");
+                    // System.out.println("[JActivityAdapter] First arg: " + javaArgs[0] + " (type: " +
+                    //                            javaArgs[0].getClass().getSimpleName() + ")");
                 }
 
 
@@ -990,34 +990,34 @@ public class WorkflowWorkerNative {
 
                 // Call the Ballerina function with Runtime directly on calling thread
                 // Note: Ballerina runtime appears incompatible with virtual threads
-                System.out.println("[JActivityAdapter] Invoking Ballerina activity function: " + activityName);
-                System.out.println("[JActivityAdapter] Executing on thread: " + Thread.currentThread());
+                // System.out.println("[JActivityAdapter] Invoking Ballerina activity function: " + activityName);
+                // System.out.println("[JActivityAdapter] Executing on thread: " + Thread.currentThread());
 
                 FPValue fpValue = (FPValue) activityFunction;
                 fpValue.metadata = new StrandMetadata(true, fpValue.metadata.properties());
                 Object result = activityFunction.call(ballerinaRuntime, ballerinaArgs);
-                System.out.println("[JActivityAdapter] Activity function call completed, result type: " +
-                                           (result != null ? result.getClass().getSimpleName() : "null"));
+                // System.out.println("[JActivityAdapter] Activity function call completed, result type: " +
+                //                            (result != null ? result.getClass().getSimpleName() : "null"));
 
                 // Check if result is a BError - this is a valid return value, not a failure
                 if (result instanceof io.ballerina.runtime.api.values.BError) {
                     io.ballerina.runtime.api.values.BError error =
                         (io.ballerina.runtime.api.values.BError) result;
-                    System.out.println("[JActivityAdapter] Activity returned error value (treated as normal value): " +
-                                   error.getMessage());
+                    // System.out.println("[JActivityAdapter] Activity returned error value (treated as normal value): " +
+                    //                error.getMessage());
                 }
 
                 // Convert result back to Java types for Temporal
                 // BError will be converted to a serializable error representation
                 Object javaResult = convertBallerinaToJavaType(result);
-                System.out.println("[JActivityAdapter] Activity " + activityName + " completed, result: " + javaResult);
+                // System.out.println("[JActivityAdapter] Activity " + activityName + " completed, result: " + javaResult);
 
                 return javaResult;
 
             } catch (Exception e) {
                 // Activity threw an exception (panic/uncontrolled error) - this is a real failure
-                System.err.println("[JActivityAdapter] Activity execution failed with exception: " + e.getMessage());
-                System.err.println("[JActivityAdapter] This is an activity failure that will be retried by Temporal");
+                // System.err.println("[JActivityAdapter] Activity execution failed with exception: " + e.getMessage());
+                // System.err.println("[JActivityAdapter] This is an activity failure that will be retried by Temporal");
                 throw e;
             }
         }

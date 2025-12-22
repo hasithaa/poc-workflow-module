@@ -40,7 +40,7 @@ public class TemporalClientNative {
      * @return WorkflowClient handle
      */
     public static Object initClient(BMap<BString, Object> config) {
-        System.out.println("[JTemporal] ========== initClient() ENTRY ==========");
+        // System.out.println("[JTemporal] ========== initClient() ENTRY ==========");
         try {
             String serviceUrl = config.get(StringUtils
                     .fromString("serviceUrl")).toString();
@@ -49,25 +49,25 @@ public class TemporalClientNative {
             long connectionTimeout = (long) config.get(StringUtils
                     .fromString("connectionTimeout"));
 
-            System.out.println("[JTemporal] Configuration - serviceUrl: " + serviceUrl);
-            System.out.println("[JTemporal] Configuration - namespace: " + namespace);
-            System.out.println("[JTemporal] Configuration - connectionTimeout: " + connectionTimeout);
+            // System.out.println("[JTemporal] Configuration - serviceUrl: " + serviceUrl);
+            // System.out.println("[JTemporal] Configuration - namespace: " + namespace);
+            // System.out.println("[JTemporal] Configuration - connectionTimeout: " + connectionTimeout);
 
             // Build service stubs options
-            System.out.println("[JTemporal] Building WorkflowServiceStubsOptions...");
+            // System.out.println("[JTemporal] Building WorkflowServiceStubsOptions...");
             WorkflowServiceStubsOptions.Builder stubsOptionsBuilder = WorkflowServiceStubsOptions.newBuilder();
             
             if (serviceUrl != null && !serviceUrl.isEmpty()) {
-                System.out.println("[JTemporal] Setting target: " + serviceUrl);
+                // System.out.println("[JTemporal] Setting target: " + serviceUrl);
                 stubsOptionsBuilder.setTarget(serviceUrl);
             }
 
-            System.out.println("[JTemporal] Creating WorkflowServiceStubs...");
+            // System.out.println("[JTemporal] Creating WorkflowServiceStubs...");
             WorkflowServiceStubs service = WorkflowServiceStubs.newServiceStubs(stubsOptionsBuilder.build());
-            System.out.println("[JTemporal] WorkflowServiceStubs created successfully");
+            // System.out.println("[JTemporal] WorkflowServiceStubs created successfully");
 
             // Build workflow client options
-            System.out.println("[JTemporal] Building WorkflowClientOptions...");
+            // System.out.println("[JTemporal] Building WorkflowClientOptions...");
             WorkflowClientOptions.Builder clientOptionsBuilder = WorkflowClientOptions.newBuilder()
                     .setNamespace(namespace);
 
@@ -76,20 +76,20 @@ public class TemporalClientNative {
                 String identity = config.get(StringUtils
                         .fromString("identity")).toString();
                 if (identity != null && !identity.isEmpty()) {
-                    System.out.println("[JTemporal] Setting identity: " + identity);
+                    // System.out.println("[JTemporal] Setting identity: " + identity);
                     clientOptionsBuilder.setIdentity(identity);
                 }
             }
 
-            System.out.println("[JTemporal] Creating WorkflowClient instance...");
+            // System.out.println("[JTemporal] Creating WorkflowClient instance...");
             WorkflowClient client = WorkflowClient.newInstance(service, clientOptionsBuilder.build());
-            System.out.println("[JTemporal] WorkflowClient created successfully");
-            System.out.println("[JTemporal] ========== initClient() EXIT [SUCCESS] ==========");
+            // System.out.println("[JTemporal] WorkflowClient created successfully");
+            // System.out.println("[JTemporal] ========== initClient() EXIT [SUCCESS] ==========");
             
             return client;
         } catch (Exception e) {
-            System.err.println("[JTemporal] ========== initClient() EXIT [ERROR] ==========");
-            System.err.println("[JTemporal] Error initializing Temporal client: " + e.getMessage());
+            // System.err.println("[JTemporal] ========== initClient() EXIT [ERROR] ==========");
+            // System.err.println("[JTemporal] Error initializing Temporal client: " + e.getMessage());
             return ErrorCreator.createError(
                     StringUtils.fromString(
                             "Failed to initialize Temporal client: " + e.getMessage()));
@@ -103,19 +103,19 @@ public class TemporalClientNative {
      * @return null on success, error on failure
      */
     public static Object closeClient(Object clientHandle) {
-        System.out.println("[JTemporal] ========== closeClient() ENTRY ==========");
+        // System.out.println("[JTemporal] ========== closeClient() ENTRY ==========");
         try {
             if (clientHandle instanceof WorkflowClient) {
-                System.out.println("[JTemporal] Client handle is valid WorkflowClient");
+                // System.out.println("[JTemporal] Client handle is valid WorkflowClient");
                 // WorkflowClient in newer versions doesn't have close() method
                 // Cleanup is handled automatically
                 // WorkflowClient client = (WorkflowClient) clientHandle;
             }
-            System.out.println("[JTemporal] ========== closeClient() EXIT [SUCCESS] ==========");
+            // System.out.println("[JTemporal] ========== closeClient() EXIT [SUCCESS] ==========");
             return null;
         } catch (Exception e) {
-            System.err.println("[JTemporal] ========== closeClient() EXIT [ERROR] ==========");
-            System.err.println("[JTemporal] Error closing Temporal client: " + e.getMessage());
+            // System.err.println("[JTemporal] ========== closeClient() EXIT [ERROR] ==========");
+            // System.err.println("[JTemporal] Error closing Temporal client: " + e.getMessage());
             return ErrorCreator.createError(
                     StringUtils.fromString(
                             "Failed to close Temporal client: " + e.getMessage()));

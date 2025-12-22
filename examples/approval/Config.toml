@@ -2,4 +2,4 @@
 
 # Logging configuration
 [ballerina.log]
-level = "DEBUG"
+level = "INFO"

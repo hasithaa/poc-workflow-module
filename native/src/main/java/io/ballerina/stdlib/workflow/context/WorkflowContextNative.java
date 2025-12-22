@@ -103,33 +103,33 @@ public class WorkflowContextNative {
             Object contextHandle,
             BString activityName,
             BArray args) {
-        System.out.println("[JContext] ========== executeActivity() ENTRY ==========");
-        System.out.println("[JContext] Activity name: " + activityName.getValue());
-        System.out.println("[JContext] ContextNative.executeActivity() called for: " + activityName.getValue() +
-            " with " + args.size() + " args");
+        // System.out.println("[JContext] ========== executeActivity() ENTRY ==========");
+        // System.out.println("[JContext] Activity name: " + activityName.getValue());
+        // System.out.println("[JContext] ContextNative.executeActivity() called for: " + activityName.getValue() +
+        //     " with " + args.size() + " args");
         try {
             if (!(contextHandle instanceof ContextInfo)) {
-                System.err.println("[JContext] Invalid context handle type: " + contextHandle.getClass().getName());
+                // System.err.println("[JContext] Invalid context handle type: " + contextHandle.getClass().getName());
                 return ErrorCreator.createError(
                     StringUtils.fromString("Invalid context handle"));
             }
             
             ContextInfo context = (ContextInfo) contextHandle;
-            System.out.println("[JContext] Context validated, workflow ID: " + context.workflowId);
+            // System.out.println("[JContext] Context validated, workflow ID: " + context.workflowId);
             
             // Convert Ballerina array to Java Object array
             // CRITICAL: Must convert Ballerina types to plain Java types for Temporal serialization
-            System.out.println("[JContext] Converting " + args.size() + " arguments from Ballerina to Java types...");
+            // System.out.println("[JContext] Converting " + args.size() + " arguments from Ballerina to Java types...");
             Object[] javaArgs = new Object[(int) args.size()];
             for (int i = 0; i < args.size(); i++) {
                 Object arg = args.get(i);
-                System.out.println("[JContext] Processing arg[" + i + "] of type: " + arg.getClass().getSimpleName());
+                // System.out.println("[JContext] Processing arg[" + i + "] of type: " + arg.getClass().getSimpleName());
                 // Convert Ballerina types to Java types
                 if (arg instanceof BString) {
                     javaArgs[i] = ((BString) arg).getValue();
-                    System.out.println("[JContext] Converted BString to String: " + javaArgs[i]);
+                    // System.out.println("[JContext] Converted BString to String: " + javaArgs[i]);
                 } else if (arg instanceof BMap) {
-                    System.out.println("[JContext] Converting BMap to HashMap...");
+                    // System.out.println("[JContext] Converting BMap to HashMap...");
                     // Convert BMap to HashMap
                     BMap<?, ?> bMap = (BMap<?, ?>) arg;
                     Map<String, Object> javaMap = new HashMap<>();
@@ -138,51 +138,51 @@ public class WorkflowContextNative {
                         String keyStr = key instanceof BString ? ((BString) key).getValue() : key.toString();
                         Object valueObj = value instanceof BString ? ((BString) value).getValue() : value;
                         javaMap.put(keyStr, valueObj);
-                        System.out.println("[JContext] Map entry - " + keyStr + ": " + valueObj);
+                        // System.out.println("[JContext] Map entry - " + keyStr + ": " + valueObj);
                     }
                     javaArgs[i] = javaMap;
                 } else {
                     // Pass through numeric types, booleans, etc.
                     javaArgs[i] = arg;
-                    System.out.println("[JContext] Pass-through type: " + arg);
+                    // System.out.println("[JContext] Pass-through type: " + arg);
                 }
             }
             
             // Execute activity through Temporal
             // NOTE: Don't catch Temporal exceptions - let them propagate to fail the workflow
-            System.out.println("[JContext] Executing activity '" + activityName.getValue() + "' through Temporal...");
+            // System.out.println("[JContext] Executing activity '" + activityName.getValue() + "' through Temporal...");
             Object result = context.activityStub.execute(
                 activityName.getValue(),
                 Object.class,
                 javaArgs
             );
-            System.out.println("[JContext] Activity execution completed, result type: " + 
-                (result != null ? result.getClass().getSimpleName() : "null"));
+            // System.out.println("[JContext] Activity execution completed, result type: " + 
+            //     (result != null ? result.getClass().getSimpleName() : "null"));
             
             // Convert result back to Ballerina types if needed
-            System.out.println("[JContext] Converting result back to Ballerina types...");
+            // System.out.println("[JContext] Converting result back to Ballerina types...");
             
             // Use centralized conversion method for all return types
             Object ballerinaResult = convertJavaToBallerinaType(result);
             
-            System.out.println("[JContext] ========== executeActivity() EXIT [SUCCESS] ==========");
-            System.out.println("[JContext] Converted result type: " + 
-                (ballerinaResult != null ? ballerinaResult.getClass().getSimpleName() : "null"));
+            // System.out.println("[JContext] ========== executeActivity() EXIT [SUCCESS] ==========");
+            // System.out.println("[JContext] Converted result type: " + 
+            //     (ballerinaResult != null ? ballerinaResult.getClass().getSimpleName() : "null"));
             return ballerinaResult;
             
         } catch (io.temporal.failure.ActivityFailure e) {
             // Activity failed - extract error message and return as Ballerina error
             // The Ballerina 'check' operator will fail the workflow
-            System.err.println("[JContext] ========== executeActivity() EXIT [ACTIVITY FAILURE] ==========");
+            // System.err.println("[JContext] ========== executeActivity() EXIT [ACTIVITY FAILURE] ==========");
             String errorMessage = extractActivityErrorMessage(e);
-            System.err.println("[JContext] Activity '" + activityName.getValue() + "' failed: " + errorMessage);
+            // System.err.println("[JContext] Activity '" + activityName.getValue() + "' failed: " + errorMessage);
             return ErrorCreator.createError(
                 StringUtils.fromString(errorMessage));
                 
         } catch (Exception e) {
             // Other errors - wrap as Ballerina error for non-Temporal exceptions
-            System.err.println("[JContext] ========== executeActivity() EXIT [ERROR] ==========");
-            System.err.println("[JContext] Unexpected error during activity execution: " + e.getMessage());
+            // System.err.println("[JContext] ========== executeActivity() EXIT [ERROR] ==========");
+            // System.err.println("[JContext] Unexpected error during activity execution: " + e.getMessage());
             return ErrorCreator.createError(
                 StringUtils.fromString("Activity execution error: " + e.getMessage()));
         }
@@ -201,24 +201,24 @@ public class WorkflowContextNative {
             Object contextHandle,
             BString signalName,
             long timeoutSeconds) {
-        System.out.println("[JContext] ========== awaitSignal() ENTRY ==========");
-        System.out.println("[JContext] Signal name: " + signalName.getValue());
-        System.out.println("[JContext] Timeout: " + timeoutSeconds + " seconds");
+        // System.out.println("[JContext] ========== awaitSignal() ENTRY ==========");
+        // System.out.println("[JContext] Signal name: " + signalName.getValue());
+        // System.out.println("[JContext] Timeout: " + timeoutSeconds + " seconds");
         try {
             // Use the SignalAwaitWrapper for signal handling
-            System.out.println("[JContext] Calling SignalAwaitWrapper.awaitSignal()...");
+            // System.out.println("[JContext] Calling SignalAwaitWrapper.awaitSignal()...");
             Object signalResult = SignalAwaitWrapper.awaitSignal(
                 signalName.getValue(),
                 (int) timeoutSeconds
             );
             
             if (signalResult != null) {
-                System.out.println("[JContext] Signal received with result type: " + signalResult.getClass().getSimpleName());
+                // System.out.println("[JContext] Signal received with result type: " + signalResult.getClass().getSimpleName());
                 
                 // If result is already a Ballerina type (from remote method), return as-is
                 if (signalResult instanceof io.ballerina.runtime.api.values.BValue) {
-                    System.out.println("[JContext] Signal result is Ballerina type, returning directly");
-                    System.out.println("[JContext] ========== awaitSignal() EXIT [SUCCESS] ==========");
+                    // System.out.println("[JContext] Signal result is Ballerina type, returning directly");
+                    // System.out.println("[JContext] ========== awaitSignal() EXIT [SUCCESS] ==========");
                     return signalResult;
                 }
                 
@@ -226,7 +226,7 @@ public class WorkflowContextNative {
                 if (signalResult instanceof Map) {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> signalData = (Map<String, Object>) signalResult;
-                    System.out.println("[JContext] Signal data is Map with " + signalData.size() + " entries, converting to Ballerina map");
+                    // System.out.println("[JContext] Signal data is Map with " + signalData.size() + " entries, converting to Ballerina map");
                     
                     BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue(
                         TypeCreator.createMapType(PredefinedTypes.TYPE_ANYDATA));
@@ -235,28 +235,28 @@ public class WorkflowContextNative {
                             StringUtils.fromString(entry.getKey()),
                             TypesUtil.convertJavaToBallerinaType(entry.getValue())
                         );
-                        System.out.println("[JContext] Signal data - " + entry.getKey() + ": " + entry.getValue());
+                        // System.out.println("[JContext] Signal data - " + entry.getKey() + ": " + entry.getValue());
                     }
-                    System.out.println("[JContext] ========== awaitSignal() EXIT [SUCCESS] ==========");
+                    // System.out.println("[JContext] ========== awaitSignal() EXIT [SUCCESS] ==========");
                     return ballerinaMap;
                 }
                 
                 // For other Java types, attempt conversion
-                System.out.println("[JContext] Converting Java type to Ballerina type");
+                // System.out.println("[JContext] Converting Java type to Ballerina type");
                 Object converted = TypesUtil.convertJavaToBallerinaType(signalResult);
-                System.out.println("[JContext] ========== awaitSignal() EXIT [SUCCESS] ==========");
+                // System.out.println("[JContext] ========== awaitSignal() EXIT [SUCCESS] ==========");
                 return converted;
                 
             } else {
-                System.err.println("[JContext] ========== awaitSignal() EXIT [TIMEOUT] ==========");
-                System.err.println("[JContext] Timeout waiting for signal: " + signalName.getValue());
+                // System.err.println("[JContext] ========== awaitSignal() EXIT [TIMEOUT] ==========");
+                // System.err.println("[JContext] Timeout waiting for signal: " + signalName.getValue());
                 return ErrorCreator.createError(
                     StringUtils.fromString("Timeout waiting for signal: " + signalName.getValue()));
             }
             
         } catch (Exception e) {
-            System.err.println("[JContext] ========== awaitSignal() EXIT [ERROR] ==========");
-            System.err.println("[JContext] Error: " + e.getMessage());
+            // System.err.println("[JContext] ========== awaitSignal() EXIT [ERROR] ==========");
+            // System.err.println("[JContext] Error: " + e.getMessage());
             e.printStackTrace(System.err);
             return ErrorCreator.createError(
                 StringUtils.fromString("Await signal failed: " + e.getMessage()));
@@ -275,28 +275,28 @@ public class WorkflowContextNative {
             Object contextHandle,
             long timeoutSeconds,
             BFunctionPointer condition) {
-        System.out.println("[JContext] ========== awaitCondition() ENTRY ==========");
-        System.out.println("[JContext] Timeout: " + timeoutSeconds + " seconds");
+        // System.out.println("[JContext] ========== awaitCondition() ENTRY ==========");
+        // System.out.println("[JContext] Timeout: " + timeoutSeconds + " seconds");
         try {
             // Use WorkflowAwaitWrapper for condition handling
-            System.out.println("[JContext] Calling WorkflowAwaitWrapper.awaitCondition()...");
+            // System.out.println("[JContext] Calling WorkflowAwaitWrapper.awaitCondition()...");
             boolean result = WorkflowAwaitWrapper.awaitCondition(
                 (int) timeoutSeconds,
                 () -> {
-                    System.out.println("[JContext] Evaluating condition function...");
+                    // System.out.println("[JContext] Evaluating condition function...");
                     Object conditionResult = condition.call(null);
                     boolean boolResult = (Boolean) conditionResult;
-                    System.out.println("[JContext] Condition evaluated to: " + boolResult);
+                    // System.out.println("[JContext] Condition evaluated to: " + boolResult);
                     return boolResult;
                 }
             );
             
-            System.out.println("[JContext] ========== awaitCondition() EXIT [SUCCESS] - Result: " + result + " ==========");
+            // System.out.println("[JContext] ========== awaitCondition() EXIT [SUCCESS] - Result: " + result + " ==========");
             return result;
             
         } catch (Exception e) {
-            System.err.println("[JContext] ========== awaitCondition() EXIT [ERROR] ==========");
-            System.err.println("[JContext] Await condition failed: " + e.getMessage());
+            // System.err.println("[JContext] ========== awaitCondition() EXIT [ERROR] ==========");
+            // System.err.println("[JContext] Await condition failed: " + e.getMessage());
             return ErrorCreator.createError(
                 StringUtils.fromString("Await condition failed: " + e.getMessage()));
         }
@@ -314,22 +314,22 @@ public class WorkflowContextNative {
             Object contextHandle,
             BArray signalNames,
             long timeoutSeconds) {
-        System.out.println("[JContext] ========== awaitAnySignal() ENTRY ==========");
-        System.out.println("[JContext] Waiting for any of " + signalNames.size() + " signals");
-        System.out.println("[JContext] Timeout: " + timeoutSeconds + " seconds");
+        // System.out.println("[JContext] ========== awaitAnySignal() ENTRY ==========");
+        // System.out.println("[JContext] Waiting for any of " + signalNames.size() + " signals");
+        // System.out.println("[JContext] Timeout: " + timeoutSeconds + " seconds");
         try {
             // Convert BArray to Java String array
-            System.out.println("[JContext] Converting signal names from BArray...");
+            // System.out.println("[JContext] Converting signal names from BArray...");
             List<String> signalNamesList = new ArrayList<>();
             for (int i = 0; i < signalNames.size(); i++) {
                 Object item = signalNames.get(i);
                 if (item instanceof BString) {
                     String signalName = ((BString) item).getValue();
                     signalNamesList.add(signalName);
-                    System.out.println("[JContext] Signal[" + i + "]: " + signalName);
+                    // System.out.println("[JContext] Signal[" + i + "]: " + signalName);
                 } else if (item instanceof String) {
                     signalNamesList.add((String) item);
-                    System.out.println("[JContext] Signal[" + i + "]: " + item);
+                    // System.out.println("[JContext] Signal[" + i + "]: " + item);
                 }
             }
             
@@ -337,13 +337,13 @@ public class WorkflowContextNative {
             String[] signalNamesArray = signalNamesList.toArray(new String[0]);
             
             if (signalNamesArray.length == 0) {
-                System.err.println("[JContext] No signal names provided");
+                // System.err.println("[JContext] No signal names provided");
                 return ErrorCreator.createError(
                     StringUtils.fromString("No signal names provided"));
             }
             
             // Wait for ANY of the signals using SignalAwaitWrapper.awaitAnySignal()
-            System.out.println("[JContext] Waiting for any of these signals: " + String.join(", ", signalNamesArray));
+            // System.out.println("[JContext] Waiting for any of these signals: " + String.join(", ", signalNamesArray));
             SignalAwaitWrapper.SignalResult signalResult = SignalAwaitWrapper.awaitAnySignal(
                 signalNamesArray,
                 (int) timeoutSeconds
@@ -353,10 +353,10 @@ public class WorkflowContextNative {
                 try {
                     String receivedSignalName = signalResult.getSignalName();
                     Object signalData = signalResult.getData();  // Changed from Map<String, Object>
-                    System.out.println("[JContext] Signal received: " + receivedSignalName);
+                    // System.out.println("[JContext] Signal received: " + receivedSignalName);
                     
                     // Create the data map with correct type (map<anydata>)
-                    System.out.println("[JContext] Converting signal data to BMap...");
+                    // System.out.println("[JContext] Converting signal data to BMap...");
                     BMap<BString, Object> dataMap;
                     
                     // If signalData is already Ballerina type, use it
@@ -375,7 +375,7 @@ public class WorkflowContextNative {
                             BString key = StringUtils.fromString(entry.getKey());
                             Object value = TypesUtil.convertJavaToBallerinaType(entry.getValue());
                             dataMap.put(key, value);
-                            System.out.println("[JContext] Signal data - " + entry.getKey() + ": " + entry.getValue());
+                            // System.out.println("[JContext] Signal data - " + entry.getKey() + ": " + entry.getValue());
                         }
                     } else {
                         // For other types, wrap in a map with "data" key
@@ -385,11 +385,11 @@ public class WorkflowContextNative {
                             TypesUtil.convertJavaToBallerinaType(signalData));
                     }
                     
-                    System.out.println("[JContext] dataMap created");
+                    // System.out.println("[JContext] dataMap created");
                     
                     // Create the result map with signal name and data fields
                     // The structure matches SignalResult: record {| string signalName; map<anydata> data; |}
-                    System.out.println("[JContext] Creating result map...");
+                    // System.out.println("[JContext] Creating result map...");
                     @SuppressWarnings("unchecked")
                     BMap<BString, Object> result = ValueCreator.createMapValue(
                         TypeCreator.createMapType(PredefinedTypes.TYPE_ANYDATA));
@@ -400,21 +400,21 @@ public class WorkflowContextNative {
                     );
                     result.put(StringUtils.fromString("data"), dataMap);
                     
-                    System.out.println("[JContext] SignalResult record complete: signalName=" + receivedSignalName);
-                    System.out.println("[JContext] ========== awaitAnySignal() EXIT [SUCCESS] ==========");
+                    // System.out.println("[JContext] SignalResult record complete: signalName=" + receivedSignalName);
+                    // System.out.println("[JContext] ========== awaitAnySignal() EXIT [SUCCESS] ==========");
                     return result;
                 } catch (Exception e) {
-                    System.err.println("[JContext] ========================================");
-                    System.err.println("[JContext] ERROR in awaitAnySignal result creation");
-                    System.err.println("[JContext] Exception: " + e.getClass().getName());
-                    System.err.println("[JContext] Message: " + e.getMessage());
+                    // System.err.println("[JContext] ========================================");
+                    // System.err.println("[JContext] ERROR in awaitAnySignal result creation");
+                    // System.err.println("[JContext] Exception: " + e.getClass().getName());
+                    // System.err.println("[JContext] Message: " + e.getMessage());
                     e.printStackTrace(System.err);
-                    System.err.println("[JContext] ========================================");
+                    // System.err.println("[JContext] ========================================");
                     throw e;
                 }
             } else {
-                System.err.println("[JContext] ========== awaitAnySignal() EXIT [TIMEOUT] ==========");
-                System.err.println("[JContext] Timeout waiting for any signal");
+                // System.err.println("[JContext] ========== awaitAnySignal() EXIT [TIMEOUT] ==========");
+                // System.err.println("[JContext] Timeout waiting for any signal");
                 return ErrorCreator.createError(
                     StringUtils.fromString("Timeout waiting for any signal"));
             }
@@ -433,18 +433,18 @@ public class WorkflowContextNative {
      * @return null on success, error on failure
      */
     public static Object sleep(Object contextHandle, long seconds) {
-        System.out.println("[JContext] ========== sleep() ENTRY ==========");
-        System.out.println("[JContext] Sleep duration: " + seconds + " seconds");
+        // System.out.println("[JContext] ========== sleep() ENTRY ==========");
+        // System.out.println("[JContext] Sleep duration: " + seconds + " seconds");
         try {
             // Use Temporal's Workflow.sleep for durable sleep
-            System.out.println("[JContext] Calling Temporal Workflow.sleep()...");
+            // System.out.println("[JContext] Calling Temporal Workflow.sleep()...");
             Workflow.sleep(Duration.ofSeconds(seconds));
-            System.out.println("[JContext] ========== sleep() EXIT [SUCCESS] ==========");
+            // System.out.println("[JContext] ========== sleep() EXIT [SUCCESS] ==========");
             return null;
             
         } catch (Exception e) {
-            System.err.println("[JContext] ========== sleep() EXIT [ERROR] ==========");
-            System.err.println("[JContext] Sleep failed: " + e.getMessage());
+            // System.err.println("[JContext] ========== sleep() EXIT [ERROR] ==========");
+            // System.err.println("[JContext] Sleep failed: " + e.getMessage());
             return ErrorCreator.createError(
                 StringUtils.fromString("Sleep failed: " + e.getMessage()));
         }
@@ -457,27 +457,27 @@ public class WorkflowContextNative {
      * @return Correlation ID string
      */
     public static BString getCorrelationId(Object contextHandle) {
-        System.out.println("[JContext] ========== getCorrelationId() ENTRY ==========");
+        // System.out.println("[JContext] ========== getCorrelationId() ENTRY ==========");
         try {
             if (contextHandle instanceof ContextInfo) {
                 ContextInfo context = (ContextInfo) contextHandle;
                 if (context.workflowId != null) {
-                    System.out.println("[JContext] Returning workflow ID from context: " + context.workflowId);
-                    System.out.println("[JContext] ========== getCorrelationId() EXIT [SUCCESS] ==========");
+                    // System.out.println("[JContext] Returning workflow ID from context: " + context.workflowId);
+                    // System.out.println("[JContext] ========== getCorrelationId() EXIT [SUCCESS] ==========");
                     return StringUtils.fromString(context.workflowId);
                 }
             }
             
             // Fallback: get from Temporal workflow info
-            System.out.println("[JContext] Getting workflow ID from Temporal Workflow.getInfo()...");
+            // System.out.println("[JContext] Getting workflow ID from Temporal Workflow.getInfo()...");
             String workflowId = Workflow.getInfo().getWorkflowId();
-            System.out.println("[JContext] Workflow ID: " + workflowId);
-            System.out.println("[JContext] ========== getCorrelationId() EXIT [SUCCESS] ==========");
+            // System.out.println("[JContext] Workflow ID: " + workflowId);
+            // System.out.println("[JContext] ========== getCorrelationId() EXIT [SUCCESS] ==========");
             return StringUtils.fromString(workflowId);
             
         } catch (Exception e) {
-            System.err.println("[JContext] ========== getCorrelationId() EXIT [ERROR] ==========");
-            System.err.println("[JContext] Error getting correlation ID: " + e.getMessage());
+            // System.err.println("[JContext] ========== getCorrelationId() EXIT [ERROR] ==========");
+            // System.err.println("[JContext] Error getting correlation ID: " + e.getMessage());
             return StringUtils.fromString("unknown");
         }
     }
@@ -489,15 +489,15 @@ public class WorkflowContextNative {
      * @return true if replaying, false otherwise
      */
     public static boolean isReplaying(Object contextHandle) {
-        System.out.println("[JContext] ========== isReplaying() ENTRY ==========");
+        // System.out.println("[JContext] ========== isReplaying() ENTRY ==========");
         try {
             boolean replaying = Workflow.isReplaying();
-            System.out.println("[JContext] Is replaying: " + replaying);
-            System.out.println("[JContext] ========== isReplaying() EXIT [SUCCESS] ==========");
+            // System.out.println("[JContext] Is replaying: " + replaying);
+            // System.out.println("[JContext] ========== isReplaying() EXIT [SUCCESS] ==========");
             return replaying;
         } catch (Exception e) {
-            System.err.println("[JContext] ========== isReplaying() EXIT [ERROR] ==========");
-            System.err.println("[JContext] Error checking replay status: " + e.getMessage());
+            // System.err.println("[JContext] ========== isReplaying() EXIT [ERROR] ==========");
+            // System.err.println("[JContext] Error checking replay status: " + e.getMessage());
             return false;
         }
     }
@@ -515,13 +515,13 @@ public class WorkflowContextNative {
             String workflowId,
             String workflowType,
             Map<String, String> correlationData) {
-        System.out.println("[JContext] ========== createContext() ENTRY ==========");
-        System.out.println("[JContext] Workflow ID: " + workflowId);
-        System.out.println("[JContext] Workflow type: " + workflowType);
+        // System.out.println("[JContext] ========== createContext() ENTRY ==========");
+        // System.out.println("[JContext] Workflow ID: " + workflowId);
+        // System.out.println("[JContext] Workflow type: " + workflowType);
         if (correlationData != null) {
-            System.out.println("[JContext] Correlation data entries: " + correlationData.size());
+            // System.out.println("[JContext] Correlation data entries: " + correlationData.size());
             for (Map.Entry<String, String> entry : correlationData.entrySet()) {
-                System.out.println("[JContext] Correlation - " + entry.getKey() + ": " + entry.getValue());
+                // System.out.println("[JContext] Correlation - " + entry.getKey() + ": " + entry.getValue());
             }
         }
         ContextInfo context = new ContextInfo();
@@ -530,7 +530,7 @@ public class WorkflowContextNative {
         if (correlationData != null) {
             context.correlationData.putAll(correlationData);
         }
-        System.out.println("[JContext] ========== createContext() EXIT [SUCCESS] ==========");
+        // System.out.println("[JContext] ========== createContext() EXIT [SUCCESS] ==========");
         return context;
     }
 
@@ -543,23 +543,23 @@ public class WorkflowContextNative {
      * @return null
      */
     public static Object recordSignal(BString signalName, BMap<BString, BString> signalData) {
-        System.out.println("[JContext] ========== recordSignal() ENTRY ==========");
-        System.out.println("[JContext] Signal name: " + signalName.getValue());
+        // System.out.println("[JContext] ========== recordSignal() ENTRY ==========");
+        // System.out.println("[JContext] Signal name: " + signalName.getValue());
         Map<String, Object> javaMap = new HashMap<>();
         
         if (signalData != null) {
-            System.out.println("[JContext] Signal data entries: " + signalData.size());
+            // System.out.println("[JContext] Signal data entries: " + signalData.size());
             for (BString key : signalData.getKeys()) {
                 String keyStr = key.getValue();
                 String valueStr = signalData.get(key).getValue();
                 javaMap.put(keyStr, valueStr);
-                System.out.println("[JContext] Signal data - " + keyStr + ": " + valueStr);
+                // System.out.println("[JContext] Signal data - " + keyStr + ": " + valueStr);
             }
         }
         
-        System.out.println("[JContext] Calling SignalAwaitWrapper.recordSignal()...");
+        // System.out.println("[JContext] Calling SignalAwaitWrapper.recordSignal()...");
         SignalAwaitWrapper.recordSignal(signalName.getValue(), javaMap);
-        System.out.println("[JContext] ========== recordSignal() EXIT [SUCCESS] ==========");
+        // System.out.println("[JContext] ========== recordSignal() EXIT [SUCCESS] ==========");
         return null;
     }
     
@@ -583,13 +583,13 @@ public class WorkflowContextNative {
             
             // Check if this is an error map (activity returned BError)
             if (javaMap.containsKey("__error__") && Boolean.TRUE.equals(javaMap.get("__error__"))) {
-                System.out.println("[JContext] Detected error map, reconstructing BError");
+                // System.out.println("[JContext] Detected error map, reconstructing BError");
                 
                 String errorMessage = (String) javaMap.get("message");
                 
                 // For now, just return error with message only
                 // TODO: Properly serialize and deserialize error details
-                System.out.println("[JContext] Creating BError with message only: " + errorMessage);
+                // System.out.println("[JContext] Creating BError with message only: " + errorMessage);
                 return ErrorCreator.createError(StringUtils.fromString(errorMessage));
             }
             
@@ -625,7 +625,7 @@ public class WorkflowContextNative {
             return ((Float) javaValue).doubleValue();
         } else {
             // For unknown types, convert to string for safety
-            System.out.println("[JContext] Converting unknown Java type to BString: " + javaValue.getClass().getName());
+            // System.out.println("[JContext] Converting unknown Java type to BString: " + javaValue.getClass().getName());
             return StringUtils.fromString(javaValue.toString());
         }
     }

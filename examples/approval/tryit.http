@@ -32,7 +32,7 @@ HTTP/1.1 201  - Created
 content-type: application/json
 connection: close
 server: ballerina
-date: Mon, 22 Dec 2025 16:37:02 +0530
+date: Mon, 22 Dec 2025 16:56:21 +0530
 content-encoding: gzip
 content-length: 90
 ###
@@ -50,7 +50,7 @@ HTTP/1.1 201  - Created
 content-type: application/json
 connection: close
 server: ballerina
-date: Mon, 22 Dec 2025 16:36:29 +0530
+date: Mon, 22 Dec 2025 16:55:04 +0530
 content-encoding: gzip
 content-length: 121
 ###
@@ -71,9 +71,9 @@ HTTP/1.1 200  - OK
 content-type: application/json
 connection: close
 server: ballerina
-date: Mon, 22 Dec 2025 16:38:46 +0530
+date: Mon, 22 Dec 2025 16:56:04 +0530
 content-encoding: gzip
-content-length: 128
+content-length: 139
 ###
 GET http://localhost:9090/workflows/approval/metadata/REQ-DIRECT-0015
 
@@ -81,6 +81,6 @@ HTTP/1.1 200  - OK
 content-type: application/json
 connection: close
 server: ballerina
-date: Mon, 22 Dec 2025 16:36:48 +0530
+date: Mon, 22 Dec 2025 16:56:08 +0530
 content-encoding: gzip
 content-length: 96
