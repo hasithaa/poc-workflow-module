@@ -34,6 +34,8 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.ballerina.stdlib.workflow.utils.TypesUtil.convertJavaToBallerinaType;
+
 /**
  * Native implementation for workflow Context operations.
  */
@@ -79,22 +81,24 @@ public class ContextNative {
             BString signalName,
             long timeoutSeconds) {
         try {
-            Map<String, String> data = SignalAwaitWrapper.awaitSignal(
+            Map<String, Object> data = SignalAwaitWrapper.awaitSignal(
                 signalName.getValue(),
                 (int) timeoutSeconds
             );
             
             if (data != null) {
-                // Convert Java Map to Ballerina Map
+                // Convert Java Map to Ballerina Map with proper anydata type
                 @SuppressWarnings("unchecked")
-                BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue();
-                for (Map.Entry<String, String> entry : data.entrySet()) {
+                BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue(
+                    io.ballerina.runtime.api.creators.TypeCreator.createMapType(
+                        io.ballerina.runtime.api.types.PredefinedTypes.TYPE_ANYDATA));
+                for (Map.Entry<String, Object> entry : data.entrySet()) {
                     ballerinaMap.put(
-                        StringUtils.fromString(entry.getKey()),
-                        StringUtils.fromString(entry.getValue())
-                    );
+                            StringUtils.fromString(entry.getKey()),
+                            convertJavaToBallerinaType(entry.getValue())
+                                    );
                 }
-                return (BMap<BString, BString>) (Object) ballerinaMap;
+                return ballerinaMap;
             } else {
                 return ErrorCreator.createError(
                         StringUtils.fromString("Timeout waiting for signal: " + signalName.getValue()));
@@ -181,10 +185,12 @@ public class ContextNative {
             if (result instanceof String) {
                 return StringUtils.fromString((String) result);
             } else if (result instanceof Map) {
-                // Convert Java Map to Ballerina Map
+                // Convert Java Map to Ballerina Map with proper anydata type
                 @SuppressWarnings("unchecked")
                 Map<String, Object> javaMap = (Map<String, Object>) result;
-                BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue();
+                BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue(
+                    io.ballerina.runtime.api.creators.TypeCreator.createMapType(
+                        io.ballerina.runtime.api.types.PredefinedTypes.TYPE_ANYDATA));
                 for (Map.Entry<String, Object> entry : javaMap.entrySet()) {
                     Object value = entry.getValue();
                     Object ballerinaValue = value instanceof String ? 
@@ -208,12 +214,12 @@ public class ContextNative {
      * @param signalData Signal data as Ballerina map
      * @return null
      */
-    public static Object recordSignal(BString signalName, BMap<BString, BString> signalData) {
-        Map<String, String> javaMap = new HashMap<>();
+    public static Object recordSignal(BString signalName, BMap<BString, Object> signalData) {
+        Map<String, Object> javaMap = new HashMap<>();
         
         if (signalData != null) {
             for (BString key : signalData.getKeys()) {
-                javaMap.put(key.getValue(), signalData.get(key).getValue());
+                javaMap.put(key.getValue(), signalData.get(key));
             }
         }
         

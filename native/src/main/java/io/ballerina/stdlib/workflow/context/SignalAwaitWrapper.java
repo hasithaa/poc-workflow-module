@@ -37,7 +37,7 @@ public class SignalAwaitWrapper {
      * Key: signal name
      * Value: Queue of signal data (supports multiple signals with same name)
      */
-    private static final Map<String, LinkedBlockingQueue<Map<String, String>>> signalQueues = 
+    private static final Map<String, LinkedBlockingQueue<Map<String, Object>>> signalQueues =
         new ConcurrentHashMap<>();
 
     /**
@@ -47,10 +47,10 @@ public class SignalAwaitWrapper {
      * @param timeoutSeconds Timeout in seconds
      * @return Map containing signal data, or null if timeout
      */
-    public static Map<String, String> awaitSignal(String signalName, int timeoutSeconds) {
+    public static Map<String, Object> awaitSignal(String signalName, int timeoutSeconds) {
         // Ensure queue exists for this signal
         signalQueues.putIfAbsent(signalName, new LinkedBlockingQueue<>());
-        LinkedBlockingQueue<Map<String, String>> queue = signalQueues.get(signalName);
+        LinkedBlockingQueue<Map<String, Object>> queue = signalQueues.get(signalName);
         
         // Use Workflow.await() to wait for signal to be queued
         // MUST be called directly from workflow thread
@@ -61,7 +61,7 @@ public class SignalAwaitWrapper {
         
         if (received) {
             // Signal received - get the data
-            Map<String, String> signalData = queue.poll();
+            Map<String, Object> signalData = queue.poll();
             return signalData;
         } else {
             // Timeout
@@ -76,9 +76,9 @@ public class SignalAwaitWrapper {
      * @param signalName The name of the signal
      * @param signalData Data associated with the signal
      */
-    public static void recordSignal(String signalName, Map<String, String> signalData) {
+    public static void recordSignal(String signalName, Map<String, Object> signalData) {
         signalQueues.putIfAbsent(signalName, new LinkedBlockingQueue<>());
-        LinkedBlockingQueue<Map<String, String>> queue = signalQueues.get(signalName);
+        LinkedBlockingQueue<Map<String, Object>> queue = signalQueues.get(signalName);
         queue.offer(signalData != null ? signalData : new HashMap<>());
     }
 
@@ -112,9 +112,9 @@ public class SignalAwaitWrapper {
         if (received) {
             // Find which signal was received
             for (String signalName : signalNames) {
-                LinkedBlockingQueue<Map<String, String>> queue = signalQueues.get(signalName);
+                LinkedBlockingQueue<Map<String, Object>> queue = signalQueues.get(signalName);
                 if (!queue.isEmpty()) {
-                    Map<String, String> data = queue.poll();
+                    Map<String, Object> data = queue.poll();
                     return new SignalResult(signalName, data);
                 }
             }
@@ -131,9 +131,9 @@ public class SignalAwaitWrapper {
      * @return SignalResult if signal exists, null otherwise
      */
     public static SignalResult checkSignal(String signalName) {
-        LinkedBlockingQueue<Map<String, String>> queue = signalQueues.get(signalName);
+        LinkedBlockingQueue<Map<String, Object>> queue = signalQueues.get(signalName);
         if (queue != null && !queue.isEmpty()) {
-            Map<String, String> data = queue.poll();
+            Map<String, Object> data = queue.poll();
             return new SignalResult(signalName, data);
         }
         return null;
@@ -152,9 +152,9 @@ public class SignalAwaitWrapper {
      */
     public static class SignalResult {
         private final String signalName;
-        private final Map<String, String> data;
+        private final Map<String, Object> data;
         
-        public SignalResult(String signalName, Map<String, String> data) {
+        public SignalResult(String signalName, Map<String, Object> data) {
             this.signalName = signalName;
             this.data = data;
         }
@@ -163,11 +163,11 @@ public class SignalAwaitWrapper {
             return signalName;
         }
         
-        public Map<String, String> getData() {
+        public Map<String, Object> getData() {
             return data;
         }
         
-        public String get(String key) {
+        public Object get(String key) {
             return data != null ? data.get(key) : null;
         }
         

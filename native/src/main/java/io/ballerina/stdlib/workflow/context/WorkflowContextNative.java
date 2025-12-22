@@ -18,8 +18,10 @@
 
 package io.ballerina.stdlib.workflow.context;
 
+import io.ballerina.runtime.api.creators.TypeCreator;
 import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.creators.ErrorCreator;
+import io.ballerina.runtime.api.types.PredefinedTypes;
 import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.values.BArray;
 import io.ballerina.runtime.api.values.BFunctionPointer;
@@ -28,6 +30,7 @@ import io.ballerina.runtime.api.values.BString;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.Runtime;
 
+import io.ballerina.stdlib.workflow.utils.TypesUtil;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.workflow.ActivityStub;
 import io.temporal.workflow.Workflow;
@@ -186,26 +189,26 @@ public class WorkflowContextNative {
         try {
             // Use the SignalAwaitWrapper for signal handling
             System.out.println("[JContext] Calling SignalAwaitWrapper.awaitSignal()...");
-            Map<String, String> signalData = SignalAwaitWrapper.awaitSignal(
+            Map<String, Object> signalData = SignalAwaitWrapper.awaitSignal(
                 signalName.getValue(),
                 (int) timeoutSeconds
             );
             
             if (signalData != null) {
                 System.out.println("[JContext] Signal received with " + signalData.size() + " data entries");
-                // Convert Java Map to Ballerina Map - must use Object as value type then cast
+                // Convert Java Map to Ballerina Map with correct type (map<anydata>)
                 @SuppressWarnings("unchecked")
-                BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue();
-                for (Map.Entry<String, String> entry : signalData.entrySet()) {
+                BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue(
+                    TypeCreator.createMapType(PredefinedTypes.TYPE_ANYDATA));
+                for (Map.Entry<String, Object> entry : signalData.entrySet()) {
                     ballerinaMap.put(
                         StringUtils.fromString(entry.getKey()),
-                        StringUtils.fromString(entry.getValue())
+                        TypesUtil.convertJavaToBallerinaType(entry.getValue())
                     );
                     System.out.println("[JContext] Signal data - " + entry.getKey() + ": " + entry.getValue());
                 }
-                // Safe cast: we know all values are BString
                 System.out.println("[JContext] ========== awaitSignal() EXIT [SUCCESS] ==========");
-                return (BMap<BString, BString>) (Object) ballerinaMap;
+                return ballerinaMap;
             } else {
                 System.err.println("[JContext] ========== awaitSignal() EXIT [TIMEOUT] ==========");
                 System.err.println("[JContext] Timeout waiting for signal: " + signalName.getValue());
@@ -225,7 +228,6 @@ public class WorkflowContextNative {
      * @param contextHandle Context handle
      * @param timeoutSeconds Timeout in seconds
      * @param condition Ballerina function pointer for condition
-     * @param runtime Ballerina runtime instance (automatically provided by Ballerina)
      * @return true if condition met, false if timeout, error on failure
      */
     public static Object awaitCondition(
@@ -293,47 +295,65 @@ public class WorkflowContextNative {
             // Wait for any signal using SignalAwaitWrapper
             String[] signalNamesArray = signalNamesList.toArray(new String[0]);
             
-            // Note: This requires enhanced SignalAwaitWrapper to support multiple signals
-            // For now, we'll wait for the first signal name as a fallback
             if (signalNamesArray.length == 0) {
                 System.err.println("[JContext] No signal names provided");
                 return ErrorCreator.createError(
                     StringUtils.fromString("No signal names provided"));
             }
             
-            // Wait for first signal (simplified implementation)
-            System.out.println("[JContext] Waiting for first signal: " + signalNamesArray[0]);
-            Map<String, String> signalData = SignalAwaitWrapper.awaitSignal(
-                signalNamesArray[0],
+            // Wait for ANY of the signals using SignalAwaitWrapper.awaitAnySignal()
+            System.out.println("[JContext] Waiting for any of these signals: " + String.join(", ", signalNamesArray));
+            SignalAwaitWrapper.SignalResult signalResult = SignalAwaitWrapper.awaitAnySignal(
+                signalNamesArray,
                 (int) timeoutSeconds
             );
             
-            if (signalData != null) {
-                System.out.println("[JContext] Signal received: " + signalNamesArray[0] + " with " + signalData.size() + " data entries");
-                // Create SignalResult record
-                @SuppressWarnings("unchecked")
-                BMap<BString, Object> result = ValueCreator.createMapValue();
-                result.put(
-                    StringUtils.fromString("signalName"),
-                    StringUtils.fromString(signalNamesArray[0])
-                );
-                
-                // Convert signal data to Ballerina map - must use Object as value type then cast
-                System.out.println("[JContext] Converting signal data to BMap...");
-                @SuppressWarnings("unchecked")
-                BMap<BString, Object> dataMap = ValueCreator.createMapValue();
-                for (Map.Entry<String, String> entry : signalData.entrySet()) {
-                    dataMap.put(
-                        StringUtils.fromString(entry.getKey()),
-                        StringUtils.fromString(entry.getValue())
+            if (signalResult != null) {
+                try {
+                    String receivedSignalName = signalResult.getSignalName();
+                    Map<String, Object> signalData = signalResult.getData();
+                    System.out.println("[JContext] Signal received: " + receivedSignalName + " with " + signalData.size() + " data entries");
+                    
+                    // Create the data map with correct type (map<anydata>)
+                    System.out.println("[JContext] Converting signal data to BMap...");
+                    @SuppressWarnings("unchecked")
+                    BMap<BString, Object> dataMap = ValueCreator.createMapValue(
+                        TypeCreator.createMapType(PredefinedTypes.TYPE_ANYDATA));
+                    
+                    for (Map.Entry<String, Object> entry : signalData.entrySet()) {
+                        BString key = StringUtils.fromString(entry.getKey());
+                        Object value = TypesUtil.convertJavaToBallerinaType(entry.getValue());
+                        dataMap.put(key, value);
+                        System.out.println("[JContext] Signal data - " + entry.getKey() + ": " + entry.getValue());
+                    }
+                    
+                    System.out.println("[JContext] dataMap created with " + dataMap.size() + " entries");
+                    
+                    // Create the result map with signal name and data fields
+                    // The structure matches SignalResult: record {| string signalName; map<anydata> data; |}
+                    System.out.println("[JContext] Creating result map...");
+                    @SuppressWarnings("unchecked")
+                    BMap<BString, Object> result = ValueCreator.createMapValue(
+                        TypeCreator.createMapType(PredefinedTypes.TYPE_ANYDATA));
+                    
+                    result.put(
+                        StringUtils.fromString("signalName"),
+                        StringUtils.fromString(receivedSignalName)
                     );
-                    System.out.println("[JContext] Signal data - " + entry.getKey() + ": " + entry.getValue());
+                    result.put(StringUtils.fromString("data"), dataMap);
+                    
+                    System.out.println("[JContext] SignalResult record complete: signalName=" + receivedSignalName + ", data entries=" + dataMap.size());
+                    System.out.println("[JContext] ========== awaitAnySignal() EXIT [SUCCESS] ==========");
+                    return result;
+                } catch (Exception e) {
+                    System.err.println("[JContext] ========================================");
+                    System.err.println("[JContext] ERROR in awaitAnySignal result creation");
+                    System.err.println("[JContext] Exception: " + e.getClass().getName());
+                    System.err.println("[JContext] Message: " + e.getMessage());
+                    e.printStackTrace(System.err);
+                    System.err.println("[JContext] ========================================");
+                    throw e;
                 }
-                // Cast to the correct type for the record field
-                result.put(StringUtils.fromString("data"), (BMap<BString, BString>) (Object) dataMap);
-                
-                System.out.println("[JContext] ========== awaitAnySignal() EXIT [SUCCESS] ==========");
-                return result;
             } else {
                 System.err.println("[JContext] ========== awaitAnySignal() EXIT [TIMEOUT] ==========");
                 System.err.println("[JContext] Timeout waiting for any signal");
@@ -467,7 +487,7 @@ public class WorkflowContextNative {
     public static Object recordSignal(BString signalName, BMap<BString, BString> signalData) {
         System.out.println("[JContext] ========== recordSignal() ENTRY ==========");
         System.out.println("[JContext] Signal name: " + signalName.getValue());
-        Map<String, String> javaMap = new HashMap<>();
+        Map<String, Object> javaMap = new HashMap<>();
         
         if (signalData != null) {
             System.out.println("[JContext] Signal data entries: " + signalData.size());
@@ -516,7 +536,7 @@ public class WorkflowContextNative {
             }
             
             // Regular map conversion
-            BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue();
+            BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue(TypeCreator.createMapType(PredefinedTypes.TYPE_ANYDATA));
             for (Map.Entry<String, Object> entry : javaMap.entrySet()) {
                 ballerinaMap.put(
                     StringUtils.fromString(entry.getKey()),

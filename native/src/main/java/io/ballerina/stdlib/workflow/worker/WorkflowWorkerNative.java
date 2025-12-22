@@ -30,6 +30,7 @@ import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 import io.ballerina.runtime.internal.values.FPValue;
+import io.ballerina.stdlib.workflow.context.SignalAwaitWrapper;
 import io.temporal.activity.DynamicActivity;
 import io.temporal.client.WorkflowClient;
 import io.temporal.common.converter.EncodedValues;
@@ -45,6 +46,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static io.ballerina.stdlib.workflow.utils.TypesUtil.convertJavaToBallerinaType;
 
 /**
  * Native implementation for workflow worker operations. Provides methods to register and manage workflow services.
@@ -429,7 +432,33 @@ public class WorkflowWorkerNative {
 
         // No-arg constructor required by Temporal for dynamic workflows
         public BallerinaWorkflowAdapter() {
-            // Constructor logging removed - not needed and can cause issues
+            // Register a dynamic signal handler that handles all signals
+            Workflow.registerListener(
+                (io.temporal.workflow.DynamicSignalHandler) (signalName, encodedArgs) -> {
+                    logger.info("[JWorkflowAdapter] Signal received: {}", signalName);
+                    
+                    // Extract signal data from encodedArgs
+                    Map<String, Object> signalData = new HashMap<>();
+                    try {
+                        // Try to get the first argument as a Map
+                        @SuppressWarnings("unchecked")
+                        Map<String, String> argMap = encodedArgs.get(0, Map.class);
+                        if (argMap != null) {
+                            signalData.putAll(argMap);
+                            logger.info("[JWorkflowAdapter] Signal data extracted: {} entries", signalData.size());
+                        }
+                    } catch (Exception e) {
+                        logger.warn("[JWorkflowAdapter] Could not extract signal data as Map: {}", e.getMessage());
+                    }
+                    
+                    // Record the signal so awaitSignal can pick it up
+                    logger.info("[JWorkflowAdapter] Recording signal: {} with {} data entries", 
+                        signalName, signalData.size());
+                    SignalAwaitWrapper.recordSignal(signalName, signalData);
+                    logger.info("[JWorkflowAdapter] Signal {} recorded successfully", signalName);
+                }
+            );
+            logger.info("[JWorkflowAdapter] Dynamic signal handler registered");
         }
 
         @Override
@@ -536,15 +565,30 @@ public class WorkflowWorkerNative {
                 throw e;
             } catch (Exception e) {
                 // Wrap unexpected exceptions in ApplicationFailure to avoid workflow task retry loop
-                logger.error("[JWorkflowAdapter] Workflow execution failed with unexpected exception: {}", e.getMessage());
+                // LOG FULL STACK TRACE FOR DEBUGGING
+                logger.error("[JWorkflowAdapter] ========================================");
+                logger.error("[JWorkflowAdapter] WORKFLOW EXECUTION FAILED");
+                logger.error("[JWorkflowAdapter] Workflow Type: {}", workflowType);
+                logger.error("[JWorkflowAdapter] Exception Type: {}", e.getClass().getName());
+                logger.error("[JWorkflowAdapter] Error Message: {}", e.getMessage());
+                logger.error("[JWorkflowAdapter] Full Stack Trace:", e);
+                logger.error("[JWorkflowAdapter] ========================================");
                 
-                // Create clean error without Java stack trace
-                String cleanErrorMsg = String.format("Workflow '%s' encountered an error: %s", 
-                    workflowType, e.getMessage());
+                // Print to stderr as well for immediate visibility
+                System.err.println("[JWorkflowAdapter] ========================================");
+                System.err.println("[JWorkflowAdapter] WORKFLOW EXECUTION FAILED: " + workflowType);
+                System.err.println("[JWorkflowAdapter] Exception: " + e.getClass().getName());
+                System.err.println("[JWorkflowAdapter] Message: " + e.getMessage());
+                e.printStackTrace(System.err);
+                System.err.println("[JWorkflowAdapter] ========================================");
+                
+                // Create detailed error message with exception type and message
+                String detailedErrorMsg = String.format("Workflow '%s' encountered an error: %s - %s", 
+                    workflowType, e.getClass().getSimpleName(), e.getMessage());
                 
                 io.temporal.failure.ApplicationFailure failure = 
                     io.temporal.failure.ApplicationFailure.newFailure(
-                        cleanErrorMsg,
+                        detailedErrorMsg,
                         "BallerinaWorkflowExecutionError"
                     );
                 failure.setNonRetryable(true);
@@ -608,11 +652,15 @@ public class WorkflowWorkerNative {
                 return null;
             }
 
-            // Handle Ballerina ErrorValue - convert to error message string
+            // Handle Ballerina ErrorValue - preserve as serializable error map
             if (ballerinaValue instanceof io.ballerina.runtime.api.values.BError) {
                 io.ballerina.runtime.api.values.BError error =
                         (io.ballerina.runtime.api.values.BError) ballerinaValue;
-                return "ERROR: " + error.getMessage();
+                java.util.HashMap<String, Object> errorMap = new java.util.HashMap<>();
+                errorMap.put("__error__", true);
+                errorMap.put("message", error.getMessage());
+                errorMap.put("details", convertBallerinaToJavaType(error.getDetails()));
+                return errorMap;
             }
 
             // Handle BString
@@ -712,29 +760,6 @@ public class WorkflowWorkerNative {
      */
     public static class BallerinaActivityAdapter implements DynamicActivity {
 
-        private static Object convertJavaToBallerinaType(Object javaValue) {
-            if (javaValue == null) {
-                return null;
-            }
-            if (javaValue instanceof String) {
-                return StringUtils.fromString((String) javaValue);
-            } else if (javaValue instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> javaMap = (Map<String, Object>) javaValue;
-                BMap<BString, Object> ballerinaMap = ValueCreator.createMapValue();
-                for (Map.Entry<String, Object> entry : javaMap.entrySet()) {
-                    ballerinaMap.put(
-                            StringUtils.fromString(entry.getKey()),
-                            convertJavaToBallerinaType(entry.getValue())
-                                    );
-                }
-                return ballerinaMap;
-            } else {
-                // Primitives, numbers, booleans pass through
-                return javaValue;
-            }
-        }
-
         @Override
         public Object execute(EncodedValues args) {
             try {
@@ -796,8 +821,10 @@ public class WorkflowWorkerNative {
 
                 // Check if result is a BError - this is a valid return value, not a failure
                 if (result instanceof io.ballerina.runtime.api.values.BError) {
-                    System.out.println("[JActivityAdapter] Activity returned error value (valid return): " +
-                                               ((io.ballerina.runtime.api.values.BError) result).getMessage());
+                    io.ballerina.runtime.api.values.BError error =
+                        (io.ballerina.runtime.api.values.BError) result;
+                    System.out.println("[JActivityAdapter] Activity returned error value (treated as normal value): " +
+                                   error.getMessage());
                 }
 
                 // Convert result back to Java types for Temporal

@@ -109,25 +109,44 @@ public class CorrelationUtils {
 
     /**
      * Resolve workflow ID from correlation data.
-     * Currently returns the first value found, but could be enhanced
-     * to use a stored mapping or Temporal query.
+     * Attempts multiple strategies to find the workflow ID.
      *
      * @param correlationData Java Map of correlation data
      * @return Workflow ID or null if not found
      */
     public static String resolveWorkflowId(java.util.Map<String, String> correlationData) {
-        // Simple implementation: use "workflowId" key if present
+        // Strategy 1: Check if workflowId is explicitly provided
         if (correlationData.containsKey("workflowId")) {
             return correlationData.get("workflowId");
         }
         
-        // Alternative: construct from available correlation data
-        // This is a placeholder - in production, you might:
+        // Strategy 2: Check if workflowType is provided, then generate ID
+        if (correlationData.containsKey("workflowType")) {
+            String workflowType = correlationData.get("workflowType");
+            // Generate ID using same logic as generateWorkflowId
+            StringBuilder workflowId = new StringBuilder(workflowType);
+            
+            // Sort keys for consistent ordering, excluding workflowType itself
+            List<String> sortedKeys = new ArrayList<>(correlationData.keySet());
+            sortedKeys.remove("workflowType");
+            java.util.Collections.sort(sortedKeys);
+            
+            for (String key : sortedKeys) {
+                String value = correlationData.get(key);
+                if (value != null) {
+                    workflowId.append("-").append(value);
+                }
+            }
+            
+            return workflowId.toString();
+        }
+        
+        // Strategy 3: No workflow type provided - cannot resolve
+        // In production, you might:
         // 1. Query a correlation mapping service
-        // 2. Use Temporal's list/query APIs
+        // 2. Use Temporal's list/query APIs to search by correlation data
         // 3. Maintain a correlation cache
         
-        // For now, return null to indicate ID must be provided explicitly
         return null;
     }
 }

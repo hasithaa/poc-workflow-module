@@ -57,7 +57,7 @@ public type WorkflowStartParams record {|
 # + data - Signal payload data
 public type SignalResult record {|
     string signalName;
-    map<string> data;
+    map<anydata> data;
 |};
 
 # Workflow error

@@ -16,6 +16,7 @@
 
 import ballerina/jballerina.java;
 import ballerina/io;
+import ballerina/lang.value;
 
 # Module initialization - captures runtime environment
 function init() = @java:Method {
@@ -60,8 +61,8 @@ public isolated client class Context {
     isolated remote function awaitSignal(
             string signalName,
             int timeoutSeconds
-    ) returns map<string>|error {
-        final map<string>|error result;
+    ) returns map<anydata>|error {
+        final map<anydata>|error result;
         lock {
             io:println("[BContext] AwaitSignal called for signal: " + signalName);
             result = awaitSignalNative(self.nativeContext, signalName, timeoutSeconds);
@@ -97,13 +98,22 @@ public isolated client class Context {
             string[] signalNames,
             int timeoutSeconds
     ) returns SignalResult|error {
-        final SignalResult|error result;
+        map<anydata>|error nativeResult;
         lock {
             io:println("[BContext] AwaitAnySignal called");
-            result = awaitAnySignalNative(self.nativeContext, signalNames.clone(), timeoutSeconds);
+            nativeResult = value:cloneWithType(check awaitAnySignalNative(self.nativeContext, signalNames.clone(), timeoutSeconds));
             io:println("[BContext] AwaitAnySignal completed");
         }
-        return result;
+        
+        if nativeResult is error {
+            return nativeResult;
+        }
+
+        // Convert map to SignalResult record
+        string signalName = <string>nativeResult["signalName"];
+        anydata dataValue = nativeResult.get("data");
+        map<anydata> data = <map<anydata>>dataValue.cloneReadOnly();
+        return {signalName, data};
     }
 
     # Durable sleep - suspends workflow
@@ -158,7 +168,7 @@ isolated function awaitSignalNative(
         handle context,
         string signalName,
         int timeoutSeconds
-) returns map<string>|error = @java:Method {
+) returns map<anydata>|error = @java:Method {
     'class: "io.ballerina.stdlib.workflow.context.WorkflowContextNative",
     name: "awaitSignal"
 } external;
@@ -176,7 +186,7 @@ isolated function awaitAnySignalNative(
         handle context,
         string[] signalNames,
         int timeoutSeconds
-) returns SignalResult|error = @java:Method {
+) returns map<anydata>|error = @java:Method {
     'class: "io.ballerina.stdlib.workflow.context.WorkflowContextNative",
     name: "awaitAnySignal"
 } external;

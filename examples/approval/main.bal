@@ -81,6 +81,7 @@ service /workflows on new http:Listener(9090) {
         log:printDebug(string `[HTTP] Signal comment: ${comment}`);
 
         map<string> correlationData = {
+            "workflowType": "ApprovalWorkflow",
             "requestId": requestId
         };
 

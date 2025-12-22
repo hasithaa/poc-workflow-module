@@ -14,24 +14,24 @@ POST http://localhost:9090/workflows/approval/signal
 Content-Type: */*
 
 {
-    "requestId": "REQ-002",
+    "requestId": "REQ-DIRECT-0012",
     "signalName": "approved",
     "comment": "approved by manager"
   }
 
-HTTP/1.1 500  - Internal Server Error
+HTTP/1.1 201  - Created
 content-type: application/json
 connection: close
 server: ballerina
-date: Wed, 10 Dec 2025 15:15:40 +0530
+date: Mon, 22 Dec 2025 12:37:46 +0530
 content-encoding: gzip
-content-length: 191
+content-length: 90
 ###
 POST http://localhost:9090/workflows/approval
 Content-Type: */*
 
 {
-    "requestId": "REQ-DIRECT-001",
+    "requestId": "REQ-DIRECT-0012",
     "amount": 500,
     "requester": "user@example.com"
   }
@@ -40,8 +40,8 @@ HTTP/1.1 201  - Created
 content-type: application/json
 connection: close
 server: ballerina
-date: Thu, 11 Dec 2025 16:07:51 +0530
+date: Mon, 22 Dec 2025 12:37:43 +0530
 content-encoding: gzip
-content-length: 119
+content-length: 121
 ###
 GET http://localhost:9090/workflows/health

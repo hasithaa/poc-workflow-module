@@ -18,62 +18,63 @@ service "ApprovalWorkflow" on approvalListener {
 
         // Step 2: Wait for either approval or rejection signal
         log:printInfo(string `[Workflow] Step 2: Awaiting signal (approved/rejected/needsRevision) for requestId: ${requestId}`);
-        workflow:SignalResult result = check ctx->awaitAnySignal(
-            ["approved", "rejected", "needsRevision"],
+        map<anydata> result = check ctx->awaitSignal(
+            "approved",
             86400 // 24 hours timeout
         );
 
-        string signalName = result.signalName;
-        map<string> signalData = result.data;
+        string signalName = result["signalName"].toString();
+        anydata signalData = result["data"] ?: {};
         log:printInfo(string `[Workflow] Signal RECEIVED: '${signalName}' for requestId: ${requestId}`);
         log:printDebug(string `[Workflow] Signal data: ${signalData.toString()}`);
 
-        if signalName == "approved" {
-            string? approverValue = signalData["approver"];
-            string approver = approverValue is string ? approverValue : "unknown";
-            log:printInfo(string `[Workflow] Processing APPROVED signal - approver: ${approver}, requestId: ${requestId}`);
+        return "Done";
+        // if signalName == "approved" {
+        //     string? approverValue = signalData["approver"];
+        //     string approver = approverValue is string ? approverValue : "unknown";
+        //     log:printInfo(string `[Workflow] Processing APPROVED signal - approver: ${approver}, requestId: ${requestId}`);
             
-            log:printInfo(string `[Workflow] Publishing document for requestId: ${requestId}`);
-            anydata _ = check ctx->callActivity("publishDocument", requestId);
+        //     log:printInfo(string `[Workflow] Publishing document for requestId: ${requestId}`);
+        //     anydata _ = check ctx->callActivity("publishDocument", requestId);
             
-            log:printInfo(string `[Workflow] Notifying submitter (${requester}) of approval`);
-            anydata _ = check ctx->callActivity("notifySubmitter", requester, "Your document has been approved");
+        //     log:printInfo(string `[Workflow] Notifying submitter (${requester}) of approval`);
+        //     anydata _ = check ctx->callActivity("notifySubmitter", requester, "Your document has been approved");
             
-            log:printInfo(string `[Workflow] ApprovalWorkflow COMPLETED SUCCESSFULLY - requestId: ${requestId}, status: APPROVED`);
-            return "Document approved and published";
+        //     log:printInfo(string `[Workflow] ApprovalWorkflow COMPLETED SUCCESSFULLY - requestId: ${requestId}, status: APPROVED`);
+        //     return "Document approved and published";
             
-        } else if signalName == "rejected" {
-            string? reasonValue = signalData["reason"];
-            string reason = reasonValue is string ? reasonValue : "No reason provided";
-            log:printWarn(string `[Workflow] Processing REJECTED signal - reason: ${reason}, requestId: ${requestId}`);
+        // } else if signalName == "rejected" {
+        //     string? reasonValue = signalData["reason"];
+        //     string reason = reasonValue is string ? reasonValue : "No reason provided";
+        //     log:printWarn(string `[Workflow] Processing REJECTED signal - reason: ${reason}, requestId: ${requestId}`);
             
-            log:printInfo(string `[Workflow] Notifying submitter (${requester}) of rejection`);
-            anydata _ = check ctx->callActivity("notifySubmitter", requester, string `Document rejected: ${reason}`);
+        //     log:printInfo(string `[Workflow] Notifying submitter (${requester}) of rejection`);
+        //     anydata _ = check ctx->callActivity("notifySubmitter", requester, string `Document rejected: ${reason}`);
             
-            log:printInfo(string `[Workflow] ApprovalWorkflow COMPLETED - requestId: ${requestId}, status: REJECTED`);
-            return string `Document rejected: ${reason}`;
+        //     log:printInfo(string `[Workflow] ApprovalWorkflow COMPLETED - requestId: ${requestId}, status: REJECTED`);
+        //     return string `Document rejected: ${reason}`;
             
-        } else {
-            // needsRevision
-            string? commentsValue = signalData["comments"];
-            string comments = commentsValue is string ? commentsValue : "Revision required";
-            log:printWarn(string `[Workflow] Processing NEEDS_REVISION signal - comments: ${comments}, requestId: ${requestId}`);
+        // } else {
+        //     // needsRevision
+        //     string? commentsValue = signalData["comments"];
+        //     string comments = commentsValue is string ? commentsValue : "Revision required";
+        //     log:printWarn(string `[Workflow] Processing NEEDS_REVISION signal - comments: ${comments}, requestId: ${requestId}`);
             
-            log:printInfo(string `[Workflow] Notifying submitter (${requester}) that revision is needed`);
-            anydata _ = check ctx->callActivity("notifySubmitter", requester, string `Revision needed: ${comments}`);
+        //     log:printInfo(string `[Workflow] Notifying submitter (${requester}) that revision is needed`);
+        //     anydata _ = check ctx->callActivity("notifySubmitter", requester, string `Revision needed: ${comments}`);
             
-            // Wait for resubmission
-            log:printInfo(string `[Workflow] Awaiting 'resubmitted' signal for requestId: ${requestId}`);
-            map<string> _ = check ctx->awaitSignal("resubmitted", 172800); // 48 hours
-            log:printInfo(string `[Workflow] Resubmission signal received for requestId: ${requestId}`);
+        //     // Wait for resubmission
+        //     log:printInfo(string `[Workflow] Awaiting 'resubmitted' signal for requestId: ${requestId}`);
+        //     map<string> _ = check ctx->awaitSignal("resubmitted", 172800); // 48 hours
+        //     log:printInfo(string `[Workflow] Resubmission signal received for requestId: ${requestId}`);
             
-            // Recursive approval check - in real scenario, might want loop protection
-            log:printInfo(string `[Workflow] Processing resubmitted document for requestId: ${requestId}`);
-            anydata _ = check ctx->callActivity("notifySubmitter", requester, "Document resubmitted for approval");
+        //     // Recursive approval check - in real scenario, might want loop protection
+        //     log:printInfo(string `[Workflow] Processing resubmitted document for requestId: ${requestId}`);
+        //     anydata _ = check ctx->callActivity("notifySubmitter", requester, "Document resubmitted for approval");
             
-            log:printInfo(string `[Workflow] ApprovalWorkflow COMPLETED - requestId: ${requestId}, status: RESUBMITTED`);
-            return "Document resubmitted";
-        }
+        //     log:printInfo(string `[Workflow] ApprovalWorkflow COMPLETED - requestId: ${requestId}, status: RESUBMITTED`);
+        //     return "Document resubmitted";
+        // }
     }
 
 }
