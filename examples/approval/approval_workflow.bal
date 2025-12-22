@@ -1,35 +1,18 @@
-import ballerina/log;
 import ballerina/http;
 
-// Document Approval Workflow Example
-// This example demonstrates:
-// - Waiting for any of multiple signals (approved/rejected/needsRevision)
-// - Conditional logic based on received signals
-// - Handling multi-path workflows
+import hasitha/workflow;
 
-// Activity implementations for approval workflow
+// Register activities function, This is to mock activity registration, which is done implicitly by the workflow module.
+// Initialize activities at module load time
+function init() returns error? {
+    check workflow:registerActivity("validateDocument", validateDocument);
+}
+
 isolated function validateDocument(string documentId) returns error|string {
-    log:printInfo(string `[Activity] validateDocument START - documentId: ${documentId}`);
 
+    // Mock validation logic
     http:Client cl = check new ("http://localhost:9090/workflows");
     string j = check cl->get("/health");
-    log:printDebug(string `[Activity] Validation service response: ${j}`);
-    
-    log:printInfo(string `[Activity] validateDocument END - documentId: ${documentId}`);
+
     return j;
-}
-
-isolated function publishDocument(string documentId) returns error? {
-    log:printInfo(string `[Activity] publishDocument START - documentId: ${documentId}`);
-    // Simulate publishing logic
-    log:printInfo(string `[Activity] Document ${documentId} published successfully`);
-    log:printInfo(string `[Activity] publishDocument END - documentId: ${documentId}`);
-}
-
-isolated function notifySubmitter(string submitter, string message) returns error? {
-    log:printInfo(string `[Activity] notifySubmitter START - submitter: ${submitter}`);
-    log:printDebug(string `[Activity] Notification message: ${message}`);
-    // Simulate notification logic
-    log:printInfo(string `[Activity] Notification sent to ${submitter}`);
-    log:printInfo(string `[Activity] notifySubmitter END - submitter: ${submitter}`);
 }
