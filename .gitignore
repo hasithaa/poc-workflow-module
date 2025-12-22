@@ -5,3 +5,5 @@ target/
 lib/
 
 !lib/ballerina-rt-2201.13.0.jar
+
+Config.toml
