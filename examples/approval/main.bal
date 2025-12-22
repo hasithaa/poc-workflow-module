@@ -80,6 +80,32 @@ service /workflows on new http:Listener(9090) {
         };
     }
 
+    // Query workflow status
+    // GET /workflows/approval/status/{requestId}
+    resource function get approval/status/[string requestId]() returns json|error {
+        map<string> correlationData = {
+            "workflowType": "ApprovalWorkflow",
+            "requestId": requestId
+        };
+
+        anydata result = check workflowClient->query(correlationData, "getStatus");
+        
+        return check result.cloneWithType();
+    }
+
+    // Query workflow metadata
+    // GET /workflows/approval/metadata/{requestId}
+    resource function get approval/metadata/[string requestId]() returns json|error {
+        map<string> correlationData = {
+            "workflowType": "ApprovalWorkflow",
+            "requestId": requestId
+        };
+
+        anydata result = check workflowClient->query(correlationData, "getMetadata");
+        
+        return check result.cloneWithType();
+    }
+
     // Health check
     resource function get health() returns string {
         return "Workflow HTTP service is running";

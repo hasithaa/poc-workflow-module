@@ -10,6 +10,7 @@ service "ApprovalWorkflow" on approvalListener {
     private string workflowInstanceId = "";
     private string initiatedBy = "";
     private int executionCount = 0;
+    private string status = "";
 
     isolated remote function execute(workflow:Context ctx, string requestId, decimal amount, string requester) returns string|error {
 
@@ -29,6 +30,8 @@ service "ApprovalWorkflow" on approvalListener {
             return data;
         }
 
+        self.status = "Document validated";
+
         io:println(string `[Workflow ${self.workflowInstanceId}] Document validated, waiting for signal...`);
 
         // Step 2: Wait for either approval or rejection signal
@@ -43,7 +46,32 @@ service "ApprovalWorkflow" on approvalListener {
         io:println(string `[Workflow ${self.workflowInstanceId}] Received signal: ${signalName}`);
         io:println(string `[Workflow ${self.workflowInstanceId}] Total executions in this instance: ${self.executionCount}`);
         
+        self.status = "Done";
         return string `Workflow ${self.workflowInstanceId} completed by ${self.initiatedBy} after ${self.executionCount} execution(s)`;
+    }
+
+    # Query workflow status - read-only operation
+    # Returns current workflow state without modifying it
+    isolated remote function getStatus() returns map<anydata> {
+        io:println(string `[Workflow ${self.workflowInstanceId}] Query: getStatus() called`);
+        
+        return {
+            "workflowInstanceId": self.workflowInstanceId,
+            "initiatedBy": self.initiatedBy,
+            "executionCount": self.executionCount,
+            "status": self.status
+        };
+    }
+
+    # Query workflow metadata
+    isolated remote function getMetadata() returns map<anydata> {
+        io:println(string `[Workflow ${self.workflowInstanceId}] Query: getMetadata() called`);
+        
+        return {
+            "id": self.workflowInstanceId,
+            "requester": self.initiatedBy,
+            "executions": self.executionCount
+        };
     }
 
 }

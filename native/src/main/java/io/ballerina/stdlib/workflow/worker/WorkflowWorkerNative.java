@@ -457,7 +457,7 @@ public class WorkflowWorkerNative {
 
         // Per-workflow-instance service object (created fresh for each workflow execution including replays)
         // This ensures isolation between workflow instances and proper state management
-//        private BObject serviceObject;
+        private BObject serviceObject;
         private String workflowType;
 
         // Workflow logger for deterministic logging
@@ -492,6 +492,59 @@ public class WorkflowWorkerNative {
                 }
             );
             logger.info("[JWorkflowAdapter] Dynamic signal handler registered");
+            
+            // Register a dynamic query handler that routes to service methods
+            Workflow.registerListener(
+                (io.temporal.workflow.DynamicQueryHandler) (queryName, encodedArgs) -> {
+                    logger.info("[JWorkflowAdapter] Query received: {}", queryName);
+                    
+                    try {
+                        // IMPORTANT: Use the workflow's current ServiceObject instance
+                        // Don't create a new instance - queries read from the active workflow state
+                        // The serviceObject field is set during execute() method
+                        if (this.serviceObject == null) {
+                            String errorMsg = "Query called before workflow execution started";
+                            logger.error("[JWorkflowAdapter] {}", errorMsg);
+                            throw new IllegalStateException(errorMsg);
+                        }
+                        
+                        // For now, we support only no-argument queries
+                        // Future enhancement: extract query arguments from encodedArgs if needed
+                        Object[] queryArgs = new Object[0];
+                        
+                        logger.info("[JWorkflowAdapter] Invoking query method '{}' on existing service instance", queryName);
+                        
+                        // Invoke the query method on the EXISTING service object
+                        // This accesses the current workflow state without creating new instances
+                        Object result = ballerinaRuntime.callMethod(
+                            this.serviceObject, 
+                            queryName, 
+                            new StrandMetadata(true, Collections.emptyMap()),
+                            queryArgs
+                        );
+                        
+                        // Check if query returned an error - this should fail the query
+                        if (result instanceof io.ballerina.runtime.api.values.BError) {
+                            io.ballerina.runtime.api.values.BError error = (io.ballerina.runtime.api.values.BError) result;
+                            String errorMsg = error.getMessage();
+                            logger.error("[JWorkflowAdapter] Query method returned error: {}", errorMsg);
+                            throw new IllegalStateException("Query failed: " + errorMsg);
+                        }
+                        
+                        // Convert Ballerina result to Java type for Temporal
+                        Object javaResult = convertBallerinaToJavaType(result);
+                        logger.info("[JWorkflowAdapter] Query {} completed successfully, result type: {}", 
+                            queryName, (javaResult != null ? javaResult.getClass().getSimpleName() : "null"));
+                        
+                        return javaResult;
+                        
+                    } catch (Exception e) {
+                        logger.error("[JWorkflowAdapter] Query {} failed with exception: {}", queryName, e.getMessage());
+                        throw new RuntimeException("Query execution failed: " + e.getMessage(), e);
+                    }
+                }
+            );
+            logger.info("[JWorkflowAdapter] Dynamic query handler registered");
         }
 
         @Override
@@ -526,11 +579,12 @@ public class WorkflowWorkerNative {
                 // Create a new instance of the service object for this workflow execution
                 // This ensures each workflow instance has its own service object state
                 // Important: This applies to both initial execution AND replays
-                var serviceObject = createServiceInstance(templateService);
+                this.serviceObject = createServiceInstance(templateService);
                 
                 if (!isReplaying) {
                     logger.info("[JWorkflowAdapter] Created new service instance for workflow: {}", workflowType);
                 }
+
                 // Create Ballerina Context object with native workflow context handle
                 BObject contextObj = createWorkflowContext();
 
@@ -604,6 +658,16 @@ public class WorkflowWorkerNative {
                 // Re-throw Temporal failures as-is (ApplicationFailure, etc.)
                 throw e;
             } catch (Exception e) {
+                // Check if this is a DestroyWorkflowThreadError (expected during shutdown)
+                boolean isDestroyError = isDestroyWorkflowThreadError(e);
+                
+                if (isDestroyError) {
+                    // This is expected during service shutdown - workflow thread is being destroyed
+                    // Just log at debug level and re-throw to let Temporal handle cleanup
+                    logger.debug("[JWorkflowAdapter] Workflow {} thread destroyed during shutdown (expected)", workflowType);
+                    throw e;
+                }
+                
                 // Wrap unexpected exceptions in ApplicationFailure to avoid workflow task retry loop
                 // LOG FULL STACK TRACE FOR DEBUGGING
                 logger.error("[JWorkflowAdapter] ========================================");
@@ -635,6 +699,44 @@ public class WorkflowWorkerNative {
                 
                 throw failure;
             }
+        }
+
+        /**
+         * Checks if an exception is caused by DestroyWorkflowThreadError.
+         * This error is thrown by Temporal when shutting down workflow threads during service shutdown.
+         * It's expected behavior and should not be logged as a workflow failure.
+         *
+         * @param e The exception to check
+         * @return true if this is a DestroyWorkflowThreadError (possibly wrapped), false otherwise
+         */
+        private boolean isDestroyWorkflowThreadError(Exception e) {
+            // Check the exception message first (most reliable for wrapped errors)
+            String message = e.getMessage();
+            if (message != null && message.contains("io.temporal.internal.sync.DestroyWorkflowThreadError")) {
+                return true;
+            }
+            
+            // Check exception class name
+            String className = e.getClass().getName();
+            if (className.contains("DestroyWorkflowThreadError")) {
+                return true;
+            }
+            
+            // Check cause chain
+            Throwable cause = e.getCause();
+            while (cause != null) {
+                String causeName = cause.getClass().getName();
+                if (causeName.contains("DestroyWorkflowThreadError")) {
+                    return true;
+                }
+                String causeMsg = cause.getMessage();
+                if (causeMsg != null && causeMsg.contains("DestroyWorkflowThreadError")) {
+                    return true;
+                }
+                cause = cause.getCause();
+            }
+            
+            return false;
         }
 
         private Object[] extractWorkflowArguments(EncodedValues args) {

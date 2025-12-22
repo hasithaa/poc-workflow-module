@@ -207,6 +207,47 @@ public function execute(Context ctx, ApprovalRequest request) returns error? {
 }
 ```
 
+### Query Workflow State
+
+```ballerina
+service "MyWorkflow" on listener {
+    private string status = "pending";
+    
+    # Execute workflow
+    isolated remote function execute(Context ctx, string id) returns string|error {
+        self.status = "processing";
+        // ... workflow logic ...
+        self.status = "completed";
+        return "Done";
+    }
+    
+    # Query current status - read-only operation
+    isolated remote function getStatus() returns map<anydata> {
+        return {
+            "status": self.status,
+            "timestamp": time:utcNow()
+        };
+    }
+}
+```
+
+### Call Query from Client
+
+```ballerina
+// Query workflow state
+anydata result = check workflowClient->query(
+    {
+        "workflowType": "MyWorkflow",
+        "id": "workflow-123"
+    },
+    "getStatus"  // Query method name
+);
+
+// Use query result
+map<anydata> status = check result.ensureType();
+io:println("Workflow status: " + status["status"].toString());
+```
+
 ### Signal Sending
 
 ```ballerina
@@ -247,6 +288,22 @@ public isolated function approveRequest(ApprovalRequest request) returns Approva
 ```
 
 ## Recent Updates
+
+### December 22, 2025 - Session 3
+
+#### Query Feature Implementation
+- **Query Support**: Implemented `DynamicQueryHandler` for read-only workflow state inspection
+- Client API: Added `workflowClient->query()` method
+- Service Methods: Query methods can return any `map<anydata>` or serializable type
+- Synchronous execution - returns immediately without workflow modification
+- Not recorded in workflow history (read-only operations)
+- Useful for dashboards, monitoring, and status checks
+
+**Example Use Cases**:
+- Check workflow status while waiting for signals
+- Monitor progress without interfering with execution
+- Build real-time dashboards
+- Debugging and observability
 
 ### December 22, 2025 - Session 2
 

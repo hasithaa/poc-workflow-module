@@ -20,6 +20,8 @@ package io.ballerina.stdlib.workflow.client;
 
 import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.creators.ErrorCreator;
+import io.ballerina.runtime.api.creators.TypeCreator;
+import io.ballerina.runtime.api.types.PredefinedTypes;
 import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BString;
@@ -28,6 +30,7 @@ import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BDecimal;
 
 import io.ballerina.stdlib.workflow.utils.CorrelationUtils;
+import io.ballerina.stdlib.workflow.utils.TypesUtil;
 
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
@@ -320,12 +323,15 @@ public class WorkflowClientNative {
             // Execute query
             System.out.println("[JClient] Executing query '" + queryName.getValue() + "'...");
             Object result = workflow.query(queryName.getValue(), Object.class);
-            System.out.println("[JClient] Query result: " + result);
+            System.out.println("[JClient] Query result type: " + (result != null ? result.getClass().getSimpleName() : "null"));
             System.out.println("[JClient] ========== queryWorkflow() EXIT [SUCCESS] ==========");
             
             // Convert result to appropriate Ballerina type
-            // For now, return as-is; may need type conversion based on result type
-            return result;
+            if (result == null) {
+                return null;
+            }
+            
+            return TypesUtil.convertJavaToBallerinaType(result);
             
         } catch (Exception e) {
             System.err.println("[JClient] ========== queryWorkflow() EXIT [ERROR] ==========");
