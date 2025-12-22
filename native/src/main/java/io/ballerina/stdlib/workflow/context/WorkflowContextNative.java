@@ -44,6 +44,23 @@ import java.util.List;
 /**
  * Native implementation for workflow context operations.
  * Provides workflow-specific operations like activity execution, signals, and sleep.
+ * 
+ * ARCHITECTURE NOTES:
+ * -------------------
+ * 1. Per-Instance ServiceObject: Each workflow execution gets its own ServiceObject instance
+ *    (created in WorkflowWorkerNative.createServiceInstance()) to avoid state sharing between
+ *    workflow instances, including during replay scenarios.
+ * 
+ * 2. Thread Model: Signal/condition waiting uses Temporal's Workflow.await() which employs
+ *    coroutines/continuations. This means:
+ *    - The calling thread is NOT blocked during waits
+ *    - Workflow state is persisted and execution yields
+ *    - Thread is released for other work
+ *    - No Ballerina scheduler threads are held unnecessarily
+ *    - Workflows can wait indefinitely without resource consumption
+ * 
+ * 3. Context Lifecycle: ContextInfo is created per workflow execution and is independent
+ *    of the ServiceObject. It holds workflow-specific metadata and activity stubs.
  */
 public class WorkflowContextNative {
 

@@ -28,7 +28,25 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  * Signal-based await wrapper for waiting on specific signals.
  * 
- * CRITICAL: Workflow.await() must be called directly from workflow thread.
+ * CRITICAL THREADING MODEL:
+ * -------------------------
+ * Workflow.await() does NOT block the calling thread in the traditional sense.
+ * Instead, it uses Temporal's coroutine/continuation mechanism:
+ * 
+ * 1. When Workflow.await() is called, Temporal captures the workflow state
+ * 2. The workflow execution yields back to Temporal (returns control)
+ * 3. The original thread is released and can be reused for other workflows
+ * 4. When the condition becomes true (signal arrives), Temporal resumes the workflow
+ * 5. The workflow continues from where it left off (deterministic replay)
+ * 
+ * This means:
+ * - No Ballerina scheduler threads are held during signal waiting
+ * - Workflows can wait for hours/days without consuming resources
+ * - The waiting state is persisted in Temporal's history
+ * - During replay, awaits complete instantly if condition is already met
+ * 
+ * The workflow thread (whether from Ballerina scheduler or Temporal worker pool)
+ * is only active during actual code execution, not during waits.
  */
 public class SignalAwaitWrapper {
 

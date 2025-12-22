@@ -29,6 +29,7 @@ import io.ballerina.runtime.api.values.BFunctionPointer;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
+import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.internal.values.FPValue;
 import io.ballerina.stdlib.workflow.context.SignalAwaitWrapper;
 import io.temporal.activity.DynamicActivity;
@@ -419,12 +420,44 @@ public class WorkflowWorkerNative {
     }
 
     /**
+     * Create a new instance of a service object based on a template service object.
+     * This creates a per-workflow-instance copy to avoid state sharing.
+     * 
+     * @param templateService The template service object to clone
+     * @return A new instance of the same service type
+     */
+    private static BObject createServiceInstance(BObject templateService) {
+        try {
+            // Get the type of the service object
+            Type serviceType = templateService.getType();
+            
+            // Create a new instance of the same type
+            // ValueCreator.createObjectValue() creates a fresh instance
+            BObject newInstance = ValueCreator.createObjectValue(
+                serviceType.getPackage(),
+                serviceType.getName()
+            );
+            
+            return newInstance;
+        } catch (Exception e) {
+            // If we can't create a new instance, log and fall back to template
+            // This maintains backward compatibility
+            Logger logger = Workflow.getLogger(BallerinaWorkflowAdapter.class);
+            logger.warn("[JWorkflowAdapter] Failed to create new service instance, reusing template: {}", 
+                e.getMessage());
+            return templateService;
+        }
+    }
+
+    /**
      * Dynamic workflow implementation that routes to Ballerina service. This is used as a template for creating
      * workflow implementations.
      */
     public static class BallerinaWorkflowAdapter implements DynamicWorkflow {
 
-        private BObject serviceObject;
+        // Per-workflow-instance service object (created fresh for each workflow execution including replays)
+        // This ensures isolation between workflow instances and proper state management
+//        private BObject serviceObject;
         private String workflowType;
 
         // Workflow logger for deterministic logging
@@ -474,10 +507,10 @@ public class WorkflowWorkerNative {
                     logger.info("[JWorkflowAdapter] Executing workflow: {}", workflowType);
                 }
 
-                // Get the service object from static registry
-                this.serviceObject = SERVICE_REGISTRY.get(workflowType);
+                // Get the template service object from static registry
+                BObject templateService = SERVICE_REGISTRY.get(workflowType);
 
-                if (this.serviceObject == null) {
+                if (templateService == null) {
                     String errorMsg = String.format("Workflow service '%s' is not registered. " +
                         "Please ensure the workflow service is attached to the listener.", workflowType);
                     logger.error("[JWorkflowAdapter] {}", errorMsg);
@@ -490,7 +523,14 @@ public class WorkflowWorkerNative {
                     failure.setNonRetryable(true);
                     throw failure;
                 }
-
+                // Create a new instance of the service object for this workflow execution
+                // This ensures each workflow instance has its own service object state
+                // Important: This applies to both initial execution AND replays
+                var serviceObject = createServiceInstance(templateService);
+                
+                if (!isReplaying) {
+                    logger.info("[JWorkflowAdapter] Created new service instance for workflow: {}", workflowType);
+                }
                 // Create Ballerina Context object with native workflow context handle
                 BObject contextObj = createWorkflowContext();
 

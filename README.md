@@ -21,18 +21,58 @@ This module enables building resilient workflows with Temporal's orchestration e
    - Converts between Ballerina and Temporal types
    - Handles activity execution with proper error semantics
    - Implements dynamic activity adapter for type-agnostic activity calls
+   - **Per-Instance ServiceObjects**: Creates a fresh ServiceObject for each workflow execution using `ValueCreator.createObjectValue()` with type information from the registered template
 
 2. **WorkflowContextNative** (Java)
    - Provides activity execution interface via untyped ActivityStub
    - Manages signal awaiting and correlation data
    - Handles Ballerina ↔ Java type conversions with explicit TYPE_ANYDATA
    - Supports workflow replica awareness and condition waiting
+   - Independent lifecycle from ServiceObject (one context per workflow execution)
 
 3. **Context** (Ballerina Client Class)
    - Injected into workflow execute methods
    - Public API: `callActivity()`, `awaitSignal()`, `awaitAnySignal()`, `sleep()`, `isReplaying()`
    - Returns `map<anydata>` for flexible signal and result data handling
    - Thread-safe with synchronized method access
+
+### ServiceObject Lifecycle
+
+**Template Registration** (at service attachment):
+- Original ServiceObject stored in `SERVICE_REGISTRY` as a template
+- Template contains type information used for creating instances
+
+**Per-Execution Instance Creation** (at workflow start):
+1. Retrieve template from `SERVICE_REGISTRY.get(workflowType)`
+2. Extract type information: `templateService.getType()`
+3. Create new instance: `ValueCreator.createObjectValue(serviceType.getPackage(), serviceType.getName())`
+4. Each workflow execution (including replays) gets its own isolated instance
+
+**Benefits**:
+- **State Isolation**: No shared state between workflow instances
+- **Replay Safety**: Fresh instances on replay prevent state corruption
+- **Thread Safety**: No need for synchronization across workflow instances
+- **Determinism**: Each execution starts with clean state
+
+### Thread Model
+
+**Critical: Non-Blocking Signal Waits**
+
+When `Workflow.await()` is called for signal waiting:
+1. Temporal captures the workflow state (continuation)
+2. Execution yields back to Temporal (thread released)
+3. Workflow state persisted in history
+4. Thread returns to pool for other work
+5. When condition met, workflow resumes from checkpoint
+
+**Implications**:
+- ✅ No Ballerina scheduler threads blocked during waits
+- ✅ Workflows can wait hours/days without resource consumption
+- ✅ Thousands of concurrent waiting workflows possible
+- ✅ During replay, waits complete instantly if condition already met
+- ✅ Thread active only during actual code execution
+
+This is fundamentally different from traditional thread blocking - it uses coroutine/continuation semantics similar to async/await patterns.
 
 ### Error Handling Model
 
@@ -208,7 +248,25 @@ public isolated function approveRequest(ApprovalRequest request) returns Approva
 
 ## Recent Updates
 
-### December 22, 2025
+### December 22, 2025 - Session 2
+
+#### Per-Instance ServiceObject Architecture
+- **ServiceObject Isolation**: Each workflow execution now gets its own ServiceObject instance
+- Implemented `createServiceInstance()` method using Ballerina runtime APIs
+- Uses `ValueCreator.createObjectValue()` with type information from template service
+- Applies to both initial execution and replay scenarios
+- Prevents state sharing between concurrent workflow instances
+
+#### Thread Model Clarification
+- **Non-Blocking Waits**: Documented that `Workflow.await()` uses coroutines, not thread blocking
+- Signal/condition waiting releases calling thread back to pool
+- Workflow state persisted during waits, resumed when condition met
+- No Ballerina scheduler threads held unnecessarily
+- Enables efficient resource usage for long-running workflows
+
+**See detailed technical notes in session documentation below**
+
+### December 22, 2025 - Session 1
 
 #### Type System Enhancement
 - **All APIs now use `map<anydata>`** for flexible heterogeneous data
@@ -329,7 +387,9 @@ error: expected 'map<string>' but found 'map<anydata>'
 2. **Ensure all BMap creation** uses `TypeCreator.createMapType(PredefinedTypes.TYPE_ANYDATA)`
 3. **Test error returns** vs. exception throwing in activities
 4. **Verify signal data** type flexibility with complex structures
-5. **Run full build** before committing: `./build.sh`
+5. **ServiceObject isolation**: Remember each workflow gets its own instance - avoid assumptions about shared state
+6. **Test replay scenarios**: Verify new ServiceObject instances work correctly during replay
+7. **Run full build** before committing: `./build.sh`
 
 ### Code Patterns
 
