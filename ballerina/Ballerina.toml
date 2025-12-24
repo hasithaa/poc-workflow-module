@@ -1,0 +1,133 @@
+[package]
+org = "hasitha"
+name = "workflow"
+version = "0.2.0"
+distribution = "2201.13.0"
+
+[build-options]
+observabilityIncluded = true
+
+
+# Native implementation JAR
+[[platform.java21.dependency]]
+path = "../native/target/workflow-native-0.2.0-SNAPSHOT.jar"
+
+# Temporal SDK dependencies (auto-downloaded via Maven)
+[[platform.java21.dependency]]
+path = "../lib/temporal-sdk-1.32.1.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/temporal-serviceclient-1.32.1.jar"
+
+# gRPC dependencies - all version 1.70.0 for consistency
+[[platform.java21.dependency]]
+path = "../lib/grpc-api-1.70.0.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/grpc-context-1.70.0.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/grpc-core-1.70.0.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/grpc-util-1.70.0.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/grpc-stub-1.70.0.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/grpc-netty-shaded-1.70.0.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/grpc-services-1.70.0.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/grpc-protobuf-1.70.0.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/grpc-protobuf-lite-1.70.0.jar"
+
+# Protobuf dependencies
+[[platform.java21.dependency]]
+path = "../lib/protobuf-java-3.25.5.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/protobuf-java-util-3.25.5.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/proto-google-common-protos-2.48.0.jar"
+
+# Jackson JSON dependencies
+[[platform.java21.dependency]]
+path = "../lib/jackson-core-2.15.2.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/jackson-annotations-2.15.2.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/jackson-databind-2.15.2.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/jackson-datatype-jsr310-2.15.4.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/jackson-datatype-jdk8-2.15.4.jar"
+
+# Metrics and monitoring
+[[platform.java21.dependency]]
+path = "../lib/tally-core-0.13.0.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/micrometer-core-1.9.9.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/HdrHistogram-2.1.12.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/LatencyUtils-2.0.3.jar"
+
+# Guava and supporting libraries
+[[platform.java21.dependency]]
+path = "../lib/guava-32.0.1-jre.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/failureaccess-1.0.1.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/jsr305-3.0.2.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/checker-qual-3.33.0.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/error_prone_annotations-2.30.0.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/j2objc-annotations-2.8.jar"
+
+# Other dependencies
+[[platform.java21.dependency]]
+path = "../lib/gson-2.10.1.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/perfmark-api-0.27.0.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/annotations-4.1.1.4.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/animal-sniffer-annotations-1.24.jar"
+
+# Logging dependencies
+[[platform.java21.dependency]]
+path = "../lib/slf4j-api-1.7.36.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/logback-classic-1.2.12.jar"
+
+[[platform.java21.dependency]]
+path = "../lib/logback-core-1.2.12.jar"
+
