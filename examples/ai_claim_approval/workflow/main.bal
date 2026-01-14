@@ -1,5 +1,4 @@
 import ballerina/io;
-
 import hasitha/workflow;
 
 // public function main() returns error? {
@@ -23,21 +22,18 @@ service "ClaimApprovalWorkflow" on workflowWorker {
         self.userId = userId;
         self.claims = claims;
 
-        // Actual Code is string approvalResult = callStatisticalRiskAnalysisAgent(claims);
         anydata approvalResult = check ctx->callActivity("callStatisticalRiskAnalysisAgent", claims);
-        self.reason = <string>approvalResult;
+        self.reason = string:toLowerAscii(<string>approvalResult);
 
-        if approvalResult == "Approve" {
+        if self.reason == "approve" || self.reason == "approved" {
             self.isApproved = true;
-            return approvalResult;
+            return "APPROVED";
         } else {
             _ = check ctx->callActivity("sendManualApprovalRequest", "hasitha@wso2.com", reqId, userId);
             // Wait for user signal
 
             // Tempory Signature. Timeout details need to be optinoal
             _ = check ctx->awaitSignal("submitReview", 86400);
-            // Or 
-            //map<anydata> signalData = check ctx->awaitSignal("submitReview", 86400);
             if self.isApproved {
                 return "APPROVED";
             } else {
@@ -50,7 +46,7 @@ service "ClaimApprovalWorkflow" on workflowWorker {
     }
 
     @workflow:Query
-    isolated remote function getReviewDetails() returns ReviewDetails|error {
+    isolated resource function get ReviewDetails() returns ReviewDetails|error {
         io:println(string `[ClaimWF] ${self.reqId} : Retrieving review details`);
         if self.reason is () {
             return error("Review details not set yet");
@@ -64,7 +60,7 @@ service "ClaimApprovalWorkflow" on workflowWorker {
 
     // Need to fix the signature.
     @workflow:Signal
-    isolated remote function submitReview(map<anydata> signalData) returns error? {
+    isolated resource function post submitReview(map<anydata> signalData) returns error? {
         io:println(string `[ClaimWF] ${self.reqId} : on Submit Review`);
 
         SubmitReview submitReviewResult = check signalData.cloneWithType();

@@ -72,7 +72,7 @@ dependencies = [
 [[package]]
 org = "ballerina"
 name = "crypto"
-version = "2.10.0"
+version = "2.10.1"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerina", name = "time"}
@@ -120,11 +120,14 @@ dependencies = [
 	{org = "ballerina", name = "os"},
 	{org = "ballerina", name = "time"}
 ]
+modules = [
+	{org = "ballerina", packageName = "file", moduleName = "file"}
+]
 
 [[package]]
 org = "ballerina"
 name = "http"
-version = "2.15.3"
+version = "2.15.4"
 dependencies = [
 	{org = "ballerina", name = "auth"},
 	{org = "ballerina", name = "cache"},
@@ -148,6 +151,10 @@ dependencies = [
 	{org = "ballerina", name = "observe"},
 	{org = "ballerina", name = "time"},
 	{org = "ballerina", name = "url"}
+]
+modules = [
+	{org = "ballerina", packageName = "http", moduleName = "http"},
+	{org = "ballerina", packageName = "http", moduleName = "http.httpscerr"}
 ]
 
 [[package]]
@@ -275,7 +282,7 @@ version = "1.2.0"
 [[package]]
 org = "ballerina"
 name = "mcp"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
 	{org = "ballerina", name = "http"},
 	{org = "ballerina", name = "jballerina.java"},
@@ -326,7 +333,7 @@ dependencies = [
 [[package]]
 org = "ballerina"
 name = "task"
-version = "2.11.0"
+version = "2.11.1"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerina", name = "time"},
@@ -391,6 +398,8 @@ version = "0.1.0"
 dependencies = [
 	{org = "ballerina", name = "ai"},
 	{org = "ballerina", name = "email"},
+	{org = "ballerina", name = "file"},
+	{org = "ballerina", name = "http"},
 	{org = "ballerina", name = "io"},
 	{org = "ballerinai", name = "observe"},
 	{org = "hasitha", name = "workflow"}

@@ -13,3 +13,6 @@ final email:SmtpClient smtpClient = check new(
     username = smtpUser,
     password = smtpPassword
 );
+
+
+final workflow:Client workflowClient = check new (workflowProvider, "ClaimApprovalWorkflow");
