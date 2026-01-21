@@ -16,8 +16,7 @@ service file:Service on fileListener {
             // Start the workflow for each claim request
 
             map<string> correlationData = {
-                "reqId": claimRequest.id,
-                "userId": claimRequest.user
+                "reqId": claimRequest.id
             };
 
             // Tempory Signature WIP
@@ -46,7 +45,7 @@ service /document on httpDefaultListener {
     resource function get review(string reqId, string userId) returns http:Response|error {
 
         // Query the workflow for document details using the reqId
-        map<string> correlationData = {reqId, userId};
+        map<string> correlationData = {reqId};
         // Let's use an untyped client for now
         anydata details = check workflowClient->query(correlationData, "getReviewDetails");
 
@@ -101,7 +100,7 @@ service /document on httpDefaultListener {
     resource function post approve(ApprovalRequest approvalRequest) returns http:Response|error {
 
         // Notify the workflow about the approval decision
-        map<string> correlationData = {reqId: approvalRequest.reqId, userId: approvalRequest.userId};
+        map<string> correlationData = {reqId: approvalRequest.reqId};
         // Let's use an untyped client for now
         check workflowClient->signal(correlationData, "submitReview", {comment: approvalRequest.comment, result: approvalRequest.approved ? "APPROVED" : "REJECTED"});
 

@@ -1,5 +1,0 @@
-# Ballerina Configuration for Approval Workflow Application
-
-# Logging configuration
-[ballerina.log]
-level = "INFO"
